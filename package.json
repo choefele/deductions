@@ -1,0 +1,56 @@
+{
+  "name": "deductions",
+  "productName": "Deductions",
+  "version": "1.0.0",
+  "description": "Desktop app for collecting invoices for tax declaration preparation.",
+  "main": ".vite/build/main.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "eslint --ext .ts,.tsx .",
+    "test": "vitest run tests/unit",
+    "test:watch": "vitest tests/unit",
+    "pretest:e2e": "electron-forge package",
+    "test:e2e": "playwright test"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Claus Höfele",
+    "email": "claus@claushoefele.com"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
+    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
+    "@electron-forge/plugin-fuses": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.11.2",
+    "@electron/fuses": "^1.8.0",
+    "@playwright/test": "^1.60.0",
+    "@types/electron-squirrel-startup": "^1.0.2",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "42.3.0",
+    "eslint": "^8.57.1",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.32.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  }
+}
