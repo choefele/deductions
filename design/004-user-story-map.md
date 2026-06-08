@@ -42,48 +42,78 @@ The app should move this work from a late, stressful, memory-based task into a r
 
 ## Primary Users
 
-### Salaried Employee
-
-Has work-related expenses such as books, office supplies, professional training, commuting-related documents, home office equipment, or professional memberships. Wants to avoid forgetting small but valid items.
-
 ### Employee With Tax Consultant
 
-Does not want to file the tax declaration personally, but still has to provide the consultant with relevant invoices and explanations.
+An employee with income from nichtselbstständige Arbeit who uses a tax consultant for the actual tax declaration.
+
+This user still has to collect invoices, receipts, and explanations personally because the tax consultant cannot know which purchases were made, where the supporting documents are, or why a specific item may be relevant. The app should help this user produce a clean handover package: structured export, invoice copies, categories, reasons, and notes for uncertain cases.
+
+Deductions should not limit this persona to work-related expenses. It should cover everything that may be relevant for the user's income tax declaration, including Werbungskosten as well as household services, tradesperson invoices, medical expenses, donations, insurance, or other categories when applicable.
+
+Complexity:
+
+- This is a good first persona because the output is concrete: a consultant-ready package.
+- The app must clearly separate user-confirmed facts from AI suggestions so the consultant can review them.
+- Consultant expectations may vary, so export structure and category naming should be easy to adapt.
+
+### Employee Who Self-Files Tax Declaration
+
+An employee with income from nichtselbstständige Arbeit who prepares their own tax declaration, for example with ELSTER or consumer tax software.
+
+This user needs the same collection and classification help, but the final workflow is different. Instead of handing a package to a tax consultant, they use the exported data while entering their declaration themselves. They need confidence that relevant invoices were not missed, that categories make sense, and that each item has enough context to decide where it belongs.
+
+Deductions should cover all potentially deductible items for this persona, not only employment-related expenses. That includes work-related costs as well as household deductions, medical expenses, special expenses, and other applicable private deduction categories.
+
+Complexity:
+
+- The app may need stronger guidance and clearer explanations because there is no consultant acting as a reviewer.
+- Mapping app categories to tax declaration concepts may become more important.
+- There is a higher risk that users interpret suggestions as tax advice, so wording and disclaimers need care.
 
 ### Side-Income Or Self-Employed User
 
-May have both private and business-adjacent purchases. This user is valuable but may expand scope significantly because business expenses, VAT, and bookkeeping expectations can turn the product into accounting software.
+Has freelance, self-employed, rental, creator, or other side-income activity, or is fully self-employed.
 
-## Tax Framing To Validate
+This user may have both private deductions and business-related expenses. They may need to separate private, employment-related, and business-context purchases. They may also care about recurring subscriptions, equipment, travel, software, invoices issued to customers, and documents that look more like bookkeeping records than private tax receipts.
 
-The first product language should stay conservative: "possibly deductible", "suggested category", and "reason to review" are safer than "deductible".
+Deductions should still focus on collecting potentially deductible invoices and preparing an export package, not becoming a full bookkeeping or tax filing system.
 
-Useful German tax buckets to validate with a tax expert:
+Complexity:
 
-- Werbungskosten, for income-related employment expenses.
-- Sonderausgaben, for certain private expenses that tax law treats specially.
-- Außergewöhnliche Belastungen, for exceptional burdens under specific conditions.
-- Haushaltsnahe Dienstleistungen and Handwerkerleistungen, where invoices and non-cash payment evidence matter.
+- This persona can greatly expand scope because business expenses, VAT, bookkeeping, profit calculation, and record retention expectations may enter the product.
+- Mixed-use purchases are more common and harder to explain.
+- Supporting this persona well may require separate workflows, categories, and export formats from the employee-focused app.
+- This should likely be treated as a later expansion unless the product deliberately moves toward accounting-adjacent use cases.
 
-Source notes:
+## User Behavior Modes
 
-- ELSTER help describes household services and tradesperson services and notes that invoice and account payment evidence are required for these cases: https://www.elster.de/elsterweb/helpGlobal?themaGlobal=help_est_ufa_10_2025
-- The Federal Ministry of Finance tax guidelines for § 33 EStG describe außergewöhnliche Belastungen as expenses above the usual burden under specific conditions: https://ao.bundesfinanzministerium.de/esth/2024/A-Einkommensteuergesetz/IV-Tarif-31-34b/Paragraf-33/inhalt.html
+These modes are separate from the personas above. The app should support both modes for each persona.
 
-These notes are product discovery context, not legal advice. The app should keep a reviewed tax taxonomy in configuration or content files so it can be updated when law, forms, or consultant guidance changes.
+### Deadline-Driven Catch-Up User
 
-## Desired Output
+Only starts collecting deduction-relevant invoices shortly before the tax declaration deadline or shortly before sending documents to a tax consultant.
 
-At export time, the app should produce:
+This user needs fast recovery from a messy year: bulk import, email and folder search, duplicate detection, quick triage, filtering, and a clear path to export. They are less focused on habit formation during the first session and more focused on reducing immediate stress and avoiding missed documents.
 
-1. A CSV or Excel file containing one row per accepted item.
-2. Copies of the corresponding invoices or receipts.
-3. A stable identifier linking each spreadsheet row to the invoice copy.
-4. The extracted invoice facts: vendor, date, amount, currency, tax/VAT if available, document source, and file name.
-5. The suggested or confirmed tax category.
-6. A user-visible reason why the item may be relevant.
-7. Review status and confidence indicators.
-8. Optional user notes for the tax consultant.
+Product implications:
+
+- Batch import and batch review matter early.
+- Search and source coverage are critical.
+- The app should make progress visible so the user knows when the handover package is good enough.
+- Automation can still help, but it must work with historical documents, not only future collection.
+
+### Year-Round Optimizer
+
+Collects and reviews invoices continuously during the year to avoid a deadline rush.
+
+This user benefits from reminders, scheduled source checks, lightweight monthly review, dashboards, and low-friction confirmation of AI suggestions. They may be more willing to connect sources because the value comes from reducing repeated effort over time.
+
+Product implications:
+
+- Reminders, source health, and recurring review workflows matter.
+- The app should make small regular sessions efficient.
+- Progress views should show what is already collected and what still needs attention.
+- Automated collection is especially valuable for this mode.
 
 ## Story Mapping Method
 
@@ -96,23 +126,41 @@ We will build the map in four passes:
 
 The map should be organized around what the user is trying to accomplish, not around internal implementation areas such as OCR, LLM prompts, IPC, database tables, or integrations.
 
+## User Journey Backbone
+
+Current backbone:
+
+1. Define Tax Situation.
+2. Add Invoice Sources.
+3. Collect Candidate Invoices.
+4. Extract Invoice Facts.
+5. Decide Tax Relevance.
+6. Review Progress During The Year.
+7. Export Handover Package.
+
+Horizontal concerns such as trust, privacy, AI transparency, data control, and user override apply across all steps.
+
 ## Draft Story Map
 
-### 1. Set Up Deduction Collection
+### 1. Define Tax Situation
 
 User tasks:
 
 - Create or open a local deduction workspace.
-- Choose the relevant tax year.
 - Define the user's tax situation at a high level.
 - Decide whether the app is used for self-preparation or for a tax consultant handover.
+- Capture enough work and life context to make deduction suggestions useful.
 - Review privacy and local storage expectations.
+
+Tax year should not be a setup choice. Invoices should automatically be assigned to the relevant tax year based on invoice date or another validated document date. Manual tax-year override belongs in review/control workflows for cases where extraction or date interpretation is wrong.
 
 Stories:
 
-- As a user, I can create a workspace for one tax year so collected invoices stay organized.
-- As a user, I can select the tax year so exports and reminders use the right period.
+- As a user, I can create a workspace so collected invoices and receipts stay organized across tax years.
 - As a user, I can choose a simple profile such as employee, employee with consultant, or self-employed/side income so the app can adjust its suggestions.
+- As a user, I can indicate whether I file individually or through Zusammenveranlagung so the app can capture relevant context for both spouses when needed.
+- As a user, I can describe my profession and work context so the app can judge work-related relevance more accurately.
+- As a user, I can mark household, medical, donation, insurance, or other private deduction contexts that may apply so the app does not focus only on work-related expenses.
 - As a user, I can see where my documents are stored so I understand the privacy model.
 - As a user, I can change my setup choices later so early mistakes do not lock me in.
 
@@ -183,6 +231,7 @@ User tasks:
 - Identify personal/private items that should be excluded.
 - Explain why the item may be deductible.
 - Capture mixed-use or partial-use context.
+- Decide whether an item may need to be deducted across several years.
 - Ask the user for missing context.
 - Escalate uncertain items for tax consultant review.
 
@@ -194,6 +243,7 @@ Stories:
 - As a user, I can mark an invoice as not tax-relevant so it stays out of the export.
 - As a user, I can add a note explaining work relevance so my future self or consultant understands the decision.
 - As a user, I can mark mixed-use items with a proposed percentage or note so ambiguous cases are not hidden.
+- As a user, I can mark items that may need deduction across several years so the app does not treat every invoice as a one-year item.
 - As a user, I can flag an item for consultant review so uncertain cases are separated from confident ones.
 
 ### 6. Review Progress During The Year
@@ -235,39 +285,133 @@ Stories:
 - As a user, the app warns me before export if accepted items are missing files or required fields.
 - As a user, I can create a ZIP package so handover is a single artifact.
 
-### 8. Maintain Trust And Control
+## Horizontal Concerns
 
-User tasks:
+These concerns apply across the whole journey rather than belonging to one chronological step. We will expand this section as we discover more items.
 
-- Understand what AI did.
-- Review automation decisions.
-- Manage sensitive data.
-- Delete documents and sources.
-- Update tax rules and categories.
-- Keep an audit trail of user decisions.
+### Trust
+
+The app should make its decisions inspectable. Users need to understand which facts came from the invoice, which fields were extracted by automation, which conclusions were suggested by AI, and which decisions were confirmed by the user.
 
 Stories:
 
 - As a user, I can distinguish extracted facts from AI suggestions so I know what has been inferred.
 - As a user, I can see when an item was imported, reviewed, edited, or exported so decisions are traceable.
+- As a user, I can see why an item is suggested as potentially relevant so I can decide whether to accept it.
+
+### Privacy
+
+Invoices contain sensitive personal, financial, medical, household, and professional information. The app should make storage, processing, source access, and AI usage explicit.
+
+Stories:
+
+- As a user, I can see where my documents and extracted data are stored so I understand the privacy model.
+- As a user, I can decide whether cloud or external AI processing is allowed so sensitive documents are handled according to my expectations.
+- As a user, I can disconnect an invoice source so ongoing access stops when I no longer want it.
+
+### AI Transparency
+
+AI should reduce effort without pretending to provide final tax advice. The app should show confidence, uncertainty, source evidence, and review state.
+
+Stories:
+
+- As a user, I can see confidence or uncertainty indicators so I know where review is most important.
+- As a user, I can tell whether a deduction reason was generated by AI, written by me, or based on a reviewed template.
+- As a user, I can flag uncertain items for consultant review so ambiguous cases are not hidden.
+
+### Data Control
+
+The user owns the outcome and the archive. The app should preserve originals, support deletion, and make export possible without lock-in.
+
+Stories:
+
 - As a user, I can delete an invoice and its extracted data so I control sensitive documents.
 - As a user, I can export my raw archive so I am not locked into the app.
-- As a user, tax category definitions can be updated so the product does not hard-code stale assumptions.
+- As a user, invoice copies are preserved alongside structured data so the handover package remains evidence-based.
+
+### Automation With User Override
+
+The app should automate as much as possible, but the user must feel in control of the final outcome. Automation should propose, prefill, sort, and classify; the user should be able to inspect, correct, override, reject, or restore.
+
+Stories:
+
+- As a user, invoices are automatically assigned to a tax year based on invoice date so I do not have to set up years manually.
+- As a user, I can override the assigned tax year so extraction mistakes or special cases can be corrected.
+- As a user, I can override extracted fields, tax categories, deduction reasons, and review status so the final export reflects my judgment.
+- As a user, I can restore rejected or skipped documents so automation mistakes are reversible.
+
+### Taxonomy Maintenance
+
+Tax categories, export expectations, and wording may change over time. The app should avoid hard-coding stale assumptions.
+
+Stories:
+
+- As a user, tax category definitions can be updated so the product does not rely on outdated assumptions.
+- As a user, I can use category names and export fields that match my consultant or self-filing workflow.
+
+## Draft Implementation Notes
+
+These notes capture useful implementation-oriented ideas discovered during story mapping. They need refinement and validation before they should be treated as implementable requirements.
+
+### Tax Framing To Validate
+
+The first product language should stay conservative: "possibly deductible", "suggested category", and "reason to review" are safer than "deductible".
+
+Useful German tax buckets to validate with a tax expert:
+
+- Werbungskosten, for income-related employment expenses.
+- Sonderausgaben, for certain private expenses that tax law treats specially.
+- Außergewöhnliche Belastungen, for exceptional burdens under specific conditions.
+- Haushaltsnahe Dienstleistungen and Handwerkerleistungen, where invoices and non-cash payment evidence matter.
+
+Source notes:
+
+- ELSTER help describes household services and tradesperson services and notes that invoice and account payment evidence are required for these cases: https://www.elster.de/elsterweb/helpGlobal?themaGlobal=help_est_ufa_10_2025
+- The Federal Ministry of Finance tax guidelines for § 33 EStG describe außergewöhnliche Belastungen as expenses above the usual burden under specific conditions: https://ao.bundesfinanzministerium.de/esth/2024/A-Einkommensteuergesetz/IV-Tarif-31-34b/Paragraf-33/inhalt.html
+
+These notes are product discovery context, not legal advice. The app should keep a reviewed tax taxonomy in configuration or content files so it can be updated when law, forms, or consultant guidance changes.
+
+### Desired Output
+
+At export time, the app should produce:
+
+1. A CSV or Excel file containing one row per accepted item.
+2. Copies of the corresponding invoices or receipts.
+3. A stable identifier linking each spreadsheet row to the invoice copy.
+4. The extracted invoice facts: vendor, date, amount, currency, tax/VAT if available, document source, and file name.
+5. The suggested or confirmed tax category.
+6. A user-visible reason why the item may be relevant.
+7. Review status and confidence indicators.
+8. Optional user notes for the tax consultant.
+
+### Define Tax Situation Context
+
+High-level context the app may need to capture:
+
+Where possible, this context should be inferred or captured automatically from invoices, source metadata, prior user decisions, and import history instead of requiring upfront configuration. The user should only be asked when the app cannot infer context reliably or when a confirmation would materially improve the deduction assessment.
+
+- User persona: employee with tax consultant, employee who self-files, side-income/self-employed user, or a combination.
+- Filing unit: individual filing or Zusammenveranlagung for married couples, so the app can understand whether invoices and deduction contexts may belong to one or both spouses.
+- Employment context for nichtselbstständige Arbeit: profession, role, industry, work location pattern, home office situation, work equipment expectations, professional travel, professional education, memberships, and other recurring work-related costs.
+- Filing workflow: self-filing, tax consultant handover, or undecided.
+- Household and private deduction context: household services, tradesperson invoices, childcare, medical expenses, donations, insurance, care responsibilities, or other areas that may create deductible documents.
+- Side-income context when applicable: type of activity, whether business-related invoices should be collected, and whether mixed private/business use is common.
+- Review preference: conservative suggestions only, more active AI suggestions, or consultant-review-heavy workflow.
 
 ## Candidate Release Slices
 
-### Slice 1: Manual MVP
+### Slice 1: AI-Assisted Manual MVP
 
-Goal: Prove that the app can turn user-provided invoices into a useful tax handover list.
+Goal: Prove that the app can turn user-provided invoices into a useful tax handover list with enough automation to deliver the core product promise.
 
 Include:
 
-- Local workspace for one tax year.
+- Local workspace that organizes invoices by tax year from invoice dates.
 - Manual PDF/image upload.
 - Original file preservation.
-- Basic extraction of vendor, date, amount, and invoice number.
-- Manual category selection.
-- Manual reason and notes.
+- AI-assisted extraction of vendor, date, amount, currency, invoice number, and source file metadata.
+- AI-assisted category and deduction-reason suggestions, clearly marked as suggestions that require user review.
+- Manual correction of extracted fields, assigned tax year, category, reason, and notes.
 - Review statuses: pending, accepted, rejected, needs consultant review.
 - CSV export.
 - Invoice copy export with stable file names.
@@ -276,35 +420,24 @@ Defer:
 
 - Email scanning.
 - Amazon or vendor integrations.
-- Automatic deduction categorization beyond simple suggestions.
+- Fully automated acceptance of deduction decisions.
 - Scheduled reminders.
 - Multi-year reporting polish.
 
-### Slice 2: Assisted Review
+### Slice 2: Review And Export Maturity
 
-Goal: Reduce user effort after manual upload.
+Goal: Make review faster, make export more useful, and support both catch-up and year-round behavior after invoices are in the app.
 
 Include:
 
-- AI category suggestions.
-- AI reason drafts.
 - Confidence and uncertainty display.
 - Duplicate detection.
 - Batch review and filtering.
-- Excel export.
-- ZIP package generation.
-
-### Slice 3: Habit Formation
-
-Goal: Make collection happen regularly throughout the year.
-
-Include:
-
-- Reminder cadence.
 - Dashboard by month, source, category, and review status.
-- Import from watched local folders.
 - Better search.
 - Export validation.
+- Excel export.
+- ZIP package generation.
 
 ### Slice 4: Automated Collection
 
@@ -318,11 +451,18 @@ Include:
 - Source health monitoring.
 - Automated periodic checks.
 
-### Slice 5: Taxonomy And Consultant Workflow
+### Future Options
 
-Goal: Improve fit for real consultant handover.
+Slice 3 and Slice 5 are still useful directions, but they are not the focus of the current story map.
 
-Include:
+Possible Slice 3: Habit Formation.
+
+- Reminder cadence.
+- Lightweight monthly review.
+- Import from watched local folders.
+- Year-round progress nudges.
+
+Possible Slice 5: Taxonomy And Consultant Workflow.
 
 - Consultant-oriented export templates.
 - Configurable category taxonomy.
@@ -334,7 +474,7 @@ Include:
 ## Highest-Risk Assumptions
 
 1. Users will trust the app with sensitive invoices if storage and AI processing are transparent.
-2. Manual upload plus export is valuable enough before source automation exists.
+2. AI-assisted manual upload plus export is valuable enough before source automation exists.
 3. AI can produce useful deduction reasons without overclaiming legal certainty.
 4. Tax consultants will accept or at least tolerate the generated CSV/Excel plus invoice bundle.
 5. Email and vendor integrations are technically feasible without creating unacceptable maintenance or security overhead.
@@ -342,7 +482,7 @@ Include:
 
 ## Questions For The Next Mapping Session
 
-1. Who is the first target user: salaried employees, people with tax consultants, self-employed users, or another group?
+1. Who is the first target user: employee with tax consultant, employee who self-files, side-income/self-employed user, or another group?
 2. Should the MVP optimize for local-only privacy, cloud sync, or a hybrid model?
 3. Should AI processing happen locally where possible, in the cloud, or behind a user-controlled setting?
 4. Which export format matters first: CSV, Excel, ZIP with documents, or a specific consultant handover format?
