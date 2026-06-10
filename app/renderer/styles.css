@@ -1,115 +1,76 @@
-:root {
-  color-scheme: light dark;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
-  background: Canvas;
-  color: CanvasText;
+
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.145 0 0);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.145 0 0);
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-secondary: oklch(0.97 0 0);
+  --color-secondary-foreground: oklch(0.205 0 0);
+  --color-muted: oklch(0.97 0 0);
+  --color-muted-foreground: oklch(0.556 0 0);
+  --color-accent: oklch(0.97 0 0);
+  --color-accent-foreground: oklch(0.205 0 0);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(0.985 0 0);
+  --color-border: oklch(0.922 0 0);
+  --color-input: oklch(0.922 0 0);
+  --color-ring: oklch(0.708 0 0);
+  --color-sidebar: oklch(0.985 0 0);
+  --color-sidebar-foreground: oklch(0.145 0 0);
+  --color-sidebar-accent: oklch(0.955 0 0);
+  --color-sidebar-accent-foreground: oklch(0.205 0 0);
+  --color-sidebar-border: oklch(0.9 0 0);
+  --color-sidebar-ring: oklch(0.708 0 0);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-button {
-  min-height: 32px;
-  border: 1px solid ButtonBorder;
-  border-radius: 6px;
-  padding: 0 14px;
-  background: ButtonFace;
-  color: ButtonText;
-  font: inherit;
-}
-
-button:disabled {
-  opacity: 0.65;
-}
-
-button:not(:disabled) {
-  cursor: default;
-}
-
-.app-shell {
-  min-height: 100vh;
-  display: grid;
-  align-items: start;
-  padding: 48px;
-}
-
-.app-panel {
-  width: min(100%, 620px);
-}
-
-.eyebrow {
-  margin: 0 0 10px;
-  color: GrayText;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 650;
-}
-
-.lede {
-  max-width: 48rem;
-  margin: 12px 0 28px;
-  color: GrayText;
-  line-height: 1.5;
-}
-
-.app-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 160px));
-  gap: 14px;
-  margin: 0 0 28px;
-}
-
-.app-facts div {
-  min-width: 0;
-}
-
-.app-facts dt {
-  margin-bottom: 4px;
-  color: GrayText;
-  font-size: 0.8125rem;
-}
-
-.app-facts dd {
-  margin: 0;
-  font-weight: 600;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 36px;
-}
-
-.actions p {
-  margin: 0;
-  color: GrayText;
-}
-
-@media (max-width: 560px) {
-  .app-shell {
-    padding: 28px;
+@layer base {
+  * {
+    border-color: var(--color-border);
   }
 
-  .app-facts {
-    grid-template-columns: 1fr;
+  html,
+  body,
+  #root {
+    min-height: 100%;
   }
 
-  .actions {
-    align-items: flex-start;
-    flex-direction: column;
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:not(:disabled) {
+    cursor: default;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }

@@ -13,6 +13,10 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["app/renderer/*"]
+    },
     "types": ["vite/client", "vitest"]
   },
   "include": [

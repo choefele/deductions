@@ -1,0 +1,59 @@
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useRouteLoaderData } from 'react-router';
+import { FileUp, Search } from 'lucide-react';
+
+import { getBreadcrumbs, getSelectionForPath } from '@/navigation';
+import type { rootLoader } from '@/routeData';
+import { Breadcrumbs } from './Breadcrumbs';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Separator } from './ui/separator';
+import { SidebarTrigger } from './ui/sidebar';
+
+type RootData = Awaited<ReturnType<typeof rootLoader>>;
+
+export const MainHeader = () => {
+  const [isImporting, setIsImporting] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const rootData = useRouteLoaderData('root') as RootData;
+  const selection = useMemo(
+    () => getSelectionForPath(location.pathname, rootData.taxYears),
+    [location.pathname, rootData.taxYears],
+  );
+  const breadcrumbs = getBreadcrumbs(selection);
+
+  const handleImport = async () => {
+    setIsImporting(true);
+
+    try {
+      const result = await window.deductions.openFiles();
+      navigate('/import-result', { state: result });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+      <SidebarTrigger />
+      <Separator orientation="vertical" className="h-5" />
+      <div className="min-w-0 flex-1">
+        <Breadcrumbs items={breadcrumbs} />
+      </div>
+      <div className="hidden w-56 items-center gap-2 md:flex">
+        <Search className="size-4 text-muted-foreground" />
+        <Input
+          aria-label="Search invoices"
+          className="h-8"
+          disabled
+          placeholder="Search invoices"
+        />
+      </div>
+      <Button onClick={handleImport} disabled={isImporting}>
+        <FileUp />
+        {isImporting ? 'Importing...' : 'Import invoice'}
+      </Button>
+    </header>
+  );
+};
