@@ -9,14 +9,26 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     await expect(
       page.getByRole('heading', { name: 'All-years dashboard' }),
     ).toBeVisible();
-    const sidebar = page.getByRole('complementary');
+    const sidebar = page.getByRole('complementary', {
+      name: 'Primary navigation',
+    });
     await expect(sidebar.getByText('Review', { exact: true })).toBeVisible();
     await expect(sidebar.getByText('Tax years', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .locator('[data-sidebar="menu-button"][data-active="false"]')
+        .first(),
+    ).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(
       page.getByRole('button', { name: 'Import invoice' }),
     ).toBeVisible();
 
-    await sidebar.getByRole('link', { name: /2025/ }).click();
+    await sidebar.getByRole('button', { name: /2025/ }).click();
+    await expect(
+      page.getByRole('heading', { name: 'All-years dashboard' }),
+    ).toBeVisible();
+    await sidebar.getByRole('button', { name: /2025/ }).click();
+    await sidebar.getByRole('link', { name: 'Dashboard' }).click();
     await expect(
       page.getByRole('heading', { name: '2025 dashboard' }),
     ).toBeVisible();
@@ -31,6 +43,12 @@ test('opens the Deductions shell and exposes the preload API', async () => {
 
     await page.getByRole('link', { name: 'Apple Store' }).click();
     await expect(page.getByRole('heading', { name: 'Apple Store' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
+    await expect(page.locator('[data-slot="sidebar"]')).toHaveAttribute(
+      'data-collapsible',
+      'offcanvas',
+    );
 
     const apiShape = await page.evaluate(() => ({
       hasDeductionsApi: typeof window.deductions === 'object',
