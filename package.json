@@ -12,6 +12,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "test": "vitest run tests/unit",
     "test:watch": "vitest tests/unit",
     "pretest:e2e": "electron-forge package",
