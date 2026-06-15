@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router';
 
 import type { ImportFilesResult } from '../../shared/imports';
-import { reviewQueuePath } from '@/navigation';
+import { documentsPath } from '@/navigation';
 import { formatSelectionStatus } from '@/selectionStatus';
 import { Button } from '@/components/ui/button';
 import {
@@ -105,7 +105,7 @@ export const ImportResultView = () => {
             <p className="text-sm text-muted-foreground">No files selected.</p>
           )}
           <Button asChild variant="secondary">
-            <Link to={reviewQueuePath('pending')}>Review pending invoices</Link>
+            <Link to={documentsPath()}>View documents</Link>
           </Button>
         </CardContent>
       </Card>

@@ -1,15 +1,15 @@
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
   ChevronRight,
-  FileQuestion,
-  Inbox,
-  Server,
+  FileText,
+  Library,
 } from "lucide-react";
 
-import type { SourceSummary, TaxYearSummary } from "../../shared/data";
-import { categoryPath, reviewQueuePath, taxYearPath } from "@/navigation";
+import type { TaxYearSummary } from "../../shared/data";
+import { documentsPath, reviewQueuePath, taxYearPath } from "@/navigation";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
   Collapsible,
@@ -34,13 +34,33 @@ import {
 
 type AppSidebarProps = {
   locationPathname: string;
-  sources: SourceSummary[];
   taxYears: TaxYearSummary[];
 };
 
 const inactiveButtonClassName =
   "data-[active=false]:bg-transparent data-[active=false]:font-normal data-[active=false]:text-sidebar-foreground";
 const countBadgeClassName = "right-1.5 text-sidebar-foreground/60";
+
+const getLatestYear = (taxYears: TaxYearSummary[]) =>
+  taxYears.reduce<number | undefined>(
+    (latest, taxYear) =>
+      typeof latest === "number" ? Math.max(latest, taxYear.year) : taxYear.year,
+    undefined,
+  );
+
+const getOpenYearForPath = (
+  locationPathname: string,
+  taxYears: TaxYearSummary[],
+) => {
+  const yearMatch = locationPathname.match(/^\/years\/(\d{4})(?:\/|$)/);
+  const routeYear = yearMatch ? Number(yearMatch[1]) : undefined;
+
+  if (taxYears.some((taxYear) => taxYear.year === routeYear)) {
+    return routeYear;
+  }
+
+  return getLatestYear(taxYears);
+};
 
 const SidebarLink = ({
   to,
@@ -77,17 +97,16 @@ const SidebarLink = ({
 
 export const AppSidebar = ({
   locationPathname,
-  sources,
   taxYears,
 }: AppSidebarProps) => {
-  const allCounts = taxYears.reduce(
-    (counts, year) => ({
-      pending: counts.pending + year.counts.pending,
-      accepted: counts.accepted + year.counts.accepted,
-      rejected: counts.rejected + year.counts.rejected,
-    }),
-    { pending: 0, accepted: 0, rejected: 0 },
+  const selectedOpenYear = getOpenYearForPath(locationPathname, taxYears);
+  const [openYear, setOpenYear] = useState<number | undefined>(
+    selectedOpenYear,
   );
+
+  useEffect(() => {
+    setOpenYear(selectedOpenYear);
+  }, [selectedOpenYear]);
 
   return (
     <Sidebar
@@ -124,29 +143,13 @@ export const AppSidebar = ({
       <SidebarSeparator />
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Review</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarLink
-                to={reviewQueuePath("pending")}
-                label="Pending review"
-                icon={<Inbox />}
-                badge={allCounts.pending}
-                isActive={locationPathname === reviewQueuePath("pending")}
-              />
-              <SidebarLink
-                to={reviewQueuePath("accepted")}
-                label="Accepted"
-                icon={<FileQuestion />}
-                badge={allCounts.accepted}
-                isActive={locationPathname === reviewQueuePath("accepted")}
-              />
-              <SidebarLink
-                to={reviewQueuePath("rejected")}
-                label="Rejected"
-                icon={<FileQuestion />}
-                badge={allCounts.rejected}
-                isActive={locationPathname === reviewQueuePath("rejected")}
+                to="/"
+                label="All years"
+                icon={<Library />}
+                isActive={locationPathname === "/"}
               />
             </SidebarMenu>
           </SidebarGroupContent>
@@ -156,16 +159,21 @@ export const AppSidebar = ({
           <SidebarGroupLabel>Tax years</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {taxYears.map((year, index) => {
+              {taxYears.map((year) => {
                 const yearPath = taxYearPath(year.year);
-                const isYearOpen = locationPathname.startsWith(yearPath);
+                const isYearOpen = openYear === year.year;
 
                 return (
                   <Collapsible
                     key={year.year}
                     asChild
                     className="group/collapsible"
-                    defaultOpen={isYearOpen || index === 0}
+                    open={isYearOpen}
+                    onOpenChange={(isOpen) => {
+                      if (isOpen || openYear !== year.year) {
+                        setOpenYear(year.year);
+                      }
+                    }}
                   >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
@@ -187,31 +195,57 @@ export const AppSidebar = ({
                               isActive={locationPathname === yearPath}
                             >
                               <Link to={yearPath}>
-                                <span>Dashboard</span>
+                                <span>Overview</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuSubItem>
-                          {year.categories.map(({ category, total }) => (
-                            <SidebarMenuSubItem
-                              key={`${year.year}-${category.id}`}
+                          <SidebarMenuSubItem>
+                            <SidebarMenuButton
+                              asChild
+                              className={`${inactiveButtonClassName} pr-8`}
+                              isActive={
+                                locationPathname ===
+                                reviewQueuePath(year.year, "pending")
+                              }
                             >
-                              <SidebarMenuButton
-                                asChild
-                                className={`${inactiveButtonClassName} pr-8`}
-                                isActive={
-                                  locationPathname ===
-                                  categoryPath(year.year, category.id)
-                                }
-                              >
-                                <Link to={categoryPath(year.year, category.id)}>
-                                  <span>{category.label}</span>
-                                </Link>
-                              </SidebarMenuButton>
+                              <Link to={reviewQueuePath(year.year, "pending")}>
+                                <span>Review</span>
+                              </Link>
+                            </SidebarMenuButton>
+                            {year.counts.pending > 0 ? (
                               <SidebarMenuBadge className={countBadgeClassName}>
-                                {total}
+                                {year.counts.pending}
                               </SidebarMenuBadge>
-                            </SidebarMenuSubItem>
-                          ))}
+                            ) : null}
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuButton
+                              asChild
+                              className={`${inactiveButtonClassName} pr-8`}
+                              isActive={
+                                locationPathname ===
+                                reviewQueuePath(year.year, "accepted")
+                              }
+                            >
+                              <Link to={reviewQueuePath(year.year, "accepted")}>
+                                <span>Accepted</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuButton
+                              asChild
+                              className={`${inactiveButtonClassName} pr-8`}
+                              isActive={
+                                locationPathname ===
+                                reviewQueuePath(year.year, "rejected")
+                              }
+                            >
+                              <Link to={reviewQueuePath(year.year, "rejected")}>
+                                <span>Rejected</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuSubItem>
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </SidebarMenuItem>
@@ -223,18 +257,13 @@ export const AppSidebar = ({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Sources</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarLink
-                to="/sources"
-                label="Sources"
-                icon={<Server />}
-                badge={sources.reduce(
-                  (total, source) => total + source.invoiceItemCount,
-                  0,
-                )}
-                isActive={locationPathname === "/sources"}
+                to={documentsPath()}
+                label="Documents"
+                icon={<FileText />}
+                isActive={locationPathname === documentsPath()}
               />
             </SidebarMenu>
           </SidebarGroupContent>

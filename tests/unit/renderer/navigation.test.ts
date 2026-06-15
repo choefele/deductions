@@ -17,7 +17,8 @@ describe('navigation helpers', () => {
       '/years/2025/categories/work-related-expenses',
     );
     expect(invoicePath('inv-1')).toBe('/invoices/inv-1');
-    expect(reviewQueuePath('pending')).toBe('/review/pending');
+    expect(reviewQueuePath(2025, 'pending')).toBe('/years/2025/review');
+    expect(reviewQueuePath(2025, 'accepted')).toBe('/years/2025/accepted');
   });
 
   it('derives breadcrumbs for category views', () => {
@@ -41,8 +42,9 @@ describe('navigation helpers', () => {
       type: 'tax-year',
       year: 2025,
     });
-    expect(getSelectionForPath('/review/accepted', years)).toEqual({
-      type: 'review-queue',
+    expect(getSelectionForPath('/years/2025/accepted', years)).toEqual({
+      type: 'tax-year-review-queue',
+      year: 2025,
       queue: 'accepted',
     });
   });

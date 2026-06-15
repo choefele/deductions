@@ -14,13 +14,14 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     const page = await electronApp.firstWindow();
 
     await expect(
-      page.getByRole('heading', { name: 'All-years dashboard' }),
+      page.getByRole('heading', { name: 'All years' }),
     ).toBeVisible();
     const sidebar = page.getByRole('complementary', {
       name: 'Primary navigation',
     });
-    await expect(sidebar.getByText('Review', { exact: true })).toBeVisible();
+    await expect(sidebar.getByText('All years', { exact: true })).toBeVisible();
     await expect(sidebar.getByText('Tax years', { exact: true })).toBeVisible();
+    await expect(sidebar.getByText('Documents', { exact: true })).toBeVisible();
     await expect(
       page
         .locator('[data-sidebar="menu-button"][data-active="false"]')
@@ -29,18 +30,43 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     await expect(
       page.getByRole('button', { name: 'Import invoice' }),
     ).toBeVisible();
+    await expect(sidebar.getByRole('link', { name: 'Overview' })).toHaveCount(1);
+    await expect(sidebar.getByRole('button', { name: /2025/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
 
-    await sidebar.getByRole('button', { name: /2025/ }).click();
+    await page.locator('main a[href="#/years/2024"]').click();
     await expect(
-      page.getByRole('heading', { name: 'All-years dashboard' }),
+      page.getByRole('heading', { name: '2024 overview' }),
     ).toBeVisible();
+    await expect(sidebar.getByRole('link', { name: 'Overview' })).toHaveCount(1);
+    await expect(sidebar.getByRole('button', { name: /2024/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await expect(sidebar.getByRole('button', { name: /2025/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     await sidebar.getByRole('button', { name: /2025/ }).click();
-    await sidebar.getByRole('link', { name: 'Dashboard' }).click();
+    await expect(sidebar.getByRole('button', { name: /2025/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await expect(sidebar.getByRole('button', { name: /2024/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     await expect(
-      page.getByRole('heading', { name: '2025 dashboard' }),
+      page.getByRole('heading', { name: '2024 overview' }),
+    ).toBeVisible();
+    await sidebar.getByRole('link', { name: 'Overview' }).click();
+    await expect(
+      page.getByRole('heading', { name: '2025 overview' }),
     ).toBeVisible();
 
-    await sidebar
+    await page
       .getByRole('link', { name: /Work-related expenses/ })
       .first()
       .click();

@@ -11,10 +11,11 @@ export type ReviewQueueId = ReviewStatus;
 export type AppSelection =
   | { type: 'all-years' }
   | { type: 'tax-year'; year: number }
+  | { type: 'tax-year-review-queue'; year: number; queue: ReviewQueueId }
   | { type: 'category'; year: number; categoryId: TaxCategoryId }
   | { type: 'invoice'; invoice: InvoiceItemDetail }
-  | { type: 'review-queue'; queue: ReviewQueueId }
   | { type: 'sources' }
+  | { type: 'documents' }
   | { type: 'import-result' };
 
 export type BreadcrumbItem = {
@@ -29,12 +30,15 @@ export const taxYearPath = (year: number) => `/years/${year}`;
 
 export const invoicePath = (invoiceId: string) => `/invoices/${invoiceId}`;
 
-export const reviewQueuePath = (queue: ReviewQueueId) => `/review/${queue}`;
+export const documentsPath = () => '/documents';
+
+export const reviewQueuePath = (year: number, queue: ReviewQueueId) =>
+  queue === 'pending' ? `/years/${year}/review` : `/years/${year}/${queue}`;
 
 export const reviewQueueLabels: Record<ReviewQueueId, string> = {
-  pending: 'Pending review',
-  accepted: 'Accepted items',
-  rejected: 'Rejected items',
+  pending: 'Review',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
 };
 
 export const getBreadcrumbs = (selection: AppSelection): BreadcrumbItem[] => {
@@ -45,6 +49,12 @@ export const getBreadcrumbs = (selection: AppSelection): BreadcrumbItem[] => {
       return [{ label: 'Deductions' }];
     case 'tax-year':
       return [root, { label: String(selection.year) }];
+    case 'tax-year-review-queue':
+      return [
+        root,
+        { label: String(selection.year), to: taxYearPath(selection.year) },
+        { label: reviewQueueLabels[selection.queue] },
+      ];
     case 'category':
       return [
         root,
@@ -64,10 +74,10 @@ export const getBreadcrumbs = (selection: AppSelection): BreadcrumbItem[] => {
         },
         { label: selection.invoice.vendor },
       ];
-    case 'review-queue':
-      return [root, { label: reviewQueueLabels[selection.queue] }];
     case 'sources':
       return [root, { label: 'Sources' }];
+    case 'documents':
+      return [root, { label: 'Documents' }];
     case 'import-result':
       return [root, { label: 'Import result' }];
   }
@@ -92,15 +102,25 @@ export const getSelectionForPath = (
     return { type: 'sources' };
   }
 
+  if (pathname === documentsPath()) {
+    return { type: 'documents' };
+  }
+
   if (pathname === '/import-result') {
     return { type: 'import-result' };
   }
 
-  const reviewMatch = pathname.match(/^\/review\/([^/]+)$/);
-  if (reviewMatch) {
+  const yearReviewMatch = pathname.match(
+    /^\/years\/(\d{4})\/(review|accepted|rejected)$/,
+  );
+  if (yearReviewMatch) {
     return {
-      type: 'review-queue',
-      queue: reviewMatch[1] as ReviewQueueId,
+      type: 'tax-year-review-queue',
+      year: Number(yearReviewMatch[1]),
+      queue:
+        yearReviewMatch[2] === 'review'
+          ? 'pending'
+          : (yearReviewMatch[2] as ReviewQueueId),
     };
   }
 

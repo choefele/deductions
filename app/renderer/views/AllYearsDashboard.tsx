@@ -2,7 +2,7 @@ import { Link, useLoaderData } from 'react-router';
 import { ArrowRight, CheckCircle2, Inbox, XCircle } from 'lucide-react';
 
 import type { AllYearsSummary } from '../../shared/data';
-import { reviewQueuePath, taxYearPath } from '@/navigation';
+import { taxYearPath } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -21,7 +21,7 @@ export const AllYearsDashboard = () => {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            All-years dashboard
+            All years
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Review open todos and jump into a tax year when you are ready to work.
@@ -31,48 +31,42 @@ export const AllYearsDashboard = () => {
       </div>
 
       <section className="grid gap-3 md:grid-cols-3">
-        <Link to={reviewQueuePath('pending')}>
-          <Card className="h-full transition-colors hover:bg-accent/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Inbox className="size-4" />
-                Pending review
-              </CardTitle>
-              <CardDescription>Items waiting for a decision.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">
-              {summary.counts.pending}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to={reviewQueuePath('accepted')}>
-          <Card className="h-full transition-colors hover:bg-accent/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="size-4" />
-                Accepted
-              </CardTitle>
-              <CardDescription>Items ready to include later.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">
-              {summary.counts.accepted}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to={reviewQueuePath('rejected')}>
-          <Card className="h-full transition-colors hover:bg-accent/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <XCircle className="size-4" />
-                Rejected
-              </CardTitle>
-              <CardDescription>Items excluded from export.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">
-              {summary.counts.rejected}
-            </CardContent>
-          </Card>
-        </Link>
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Inbox className="size-4" />
+              Review
+            </CardTitle>
+            <CardDescription>Items waiting for a decision.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {summary.counts.pending}
+          </CardContent>
+        </Card>
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="size-4" />
+              Accepted
+            </CardTitle>
+            <CardDescription>Items ready to include later.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {summary.counts.accepted}
+          </CardContent>
+        </Card>
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <XCircle className="size-4" />
+              Rejected
+            </CardTitle>
+            <CardDescription>Items excluded from export.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {summary.counts.rejected}
+          </CardContent>
+        </Card>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_24rem]">

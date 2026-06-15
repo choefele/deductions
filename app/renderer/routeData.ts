@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { reviewStatuses, taxCategoryIds } from '../shared/data';
+import { taxCategoryIds } from '../shared/data';
 import type { ReviewStatus, TaxCategoryId } from '../shared/data';
 import { deductionsData } from './data/repository';
 
@@ -12,6 +12,25 @@ const readYearParam = (params: LoaderFunctionArgs['params']) => {
   }
 
   return year;
+};
+
+const loadTaxYearReviewQueue = async (
+  year: number,
+  queue: ReviewStatus,
+) => {
+  const summary = await deductionsData.getTaxYearSummary(year);
+
+  if (!summary) {
+    throw new Response('Tax year not found', { status: 404 });
+  }
+
+  return {
+    year,
+    queue,
+    invoiceItems: (
+      await deductionsData.listInvoiceItemsByReviewStatus(queue)
+    ).filter((item) => item.taxYear === year),
+  };
 };
 
 export const rootLoader = async () => ({
@@ -69,17 +88,19 @@ export const invoiceLoader = async ({ params }: LoaderFunctionArgs) => {
   return invoice;
 };
 
-export const reviewQueueLoader = async ({ params }: LoaderFunctionArgs) => {
-  const queue = params.queue as ReviewStatus;
+export const taxYearPendingReviewLoader = async ({
+  params,
+}: LoaderFunctionArgs) =>
+  loadTaxYearReviewQueue(readYearParam(params), 'pending');
 
-  if (!reviewStatuses.includes(queue)) {
-    throw new Response('Review queue not found', { status: 404 });
-  }
+export const taxYearAcceptedReviewLoader = async ({
+  params,
+}: LoaderFunctionArgs) =>
+  loadTaxYearReviewQueue(readYearParam(params), 'accepted');
 
-  return {
-    queue,
-    invoiceItems: await deductionsData.listInvoiceItemsByReviewStatus(queue),
-  };
-};
+export const taxYearRejectedReviewLoader = async ({
+  params,
+}: LoaderFunctionArgs) =>
+  loadTaxYearReviewQueue(readYearParam(params), 'rejected');
 
 export const sourcesLoader = async () => deductionsData.listSources();

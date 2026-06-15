@@ -10,13 +10,16 @@ import {
   allYearsLoader,
   categoryLoader,
   invoiceLoader,
-  reviewQueueLoader,
   rootLoader,
   sourcesLoader,
+  taxYearAcceptedReviewLoader,
+  taxYearPendingReviewLoader,
+  taxYearRejectedReviewLoader,
   taxYearLoader,
 } from './routeData';
 import { AllYearsDashboard } from './views/AllYearsDashboard';
 import { CategoryView } from './views/CategoryView';
+import { DocumentsView } from './views/DocumentsView';
 import { ImportResultView } from './views/ImportResultView';
 import { InvoiceDetailView } from './views/InvoiceDetailView';
 import { ReviewQueueView } from './views/ReviewQueueView';
@@ -71,9 +74,24 @@ const router = createHashRouter([
         loader: invoiceLoader,
       },
       {
-        path: 'review/:queue',
+        path: 'years/:year/review',
         element: <ReviewQueueView />,
-        loader: reviewQueueLoader,
+        loader: taxYearPendingReviewLoader,
+      },
+      {
+        path: 'years/:year/accepted',
+        element: <ReviewQueueView />,
+        loader: taxYearAcceptedReviewLoader,
+      },
+      {
+        path: 'years/:year/rejected',
+        element: <ReviewQueueView />,
+        loader: taxYearRejectedReviewLoader,
+      },
+      {
+        path: 'documents',
+        element: <DocumentsView />,
+        loader: sourcesLoader,
       },
       {
         path: 'sources',

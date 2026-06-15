@@ -5,7 +5,8 @@ import { reviewQueueLabels, type ReviewQueueId } from '@/navigation';
 import { InvoiceTable } from '@/components/InvoiceTable';
 
 export const ReviewQueueView = () => {
-  const { queue, invoiceItems } = useLoaderData() as {
+  const { year, queue, invoiceItems } = useLoaderData() as {
+    year: number;
     queue: ReviewQueueId;
     invoiceItems: InvoiceItemSummary[];
   };
@@ -17,8 +18,8 @@ export const ReviewQueueView = () => {
           {reviewQueueLabels[queue]}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {invoiceItems.length} item{invoiceItems.length === 1 ? '' : 's'} in
-          this queue.
+          {year} · {invoiceItems.length} item
+          {invoiceItems.length === 1 ? '' : 's'} in this view.
         </p>
       </div>
       <InvoiceTable invoiceItems={invoiceItems} />

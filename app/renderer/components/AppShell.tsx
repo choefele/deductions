@@ -18,7 +18,6 @@ export const AppShell = () => {
       <SidebarProvider>
         <AppSidebar
           locationPathname={location.pathname}
-          sources={rootData.sources}
           taxYears={rootData.taxYears}
         />
         <SidebarInset>

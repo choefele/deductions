@@ -22,7 +22,7 @@ export const TaxYearDashboard = () => {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {summary.year} dashboard
+            {summary.year} overview
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Check review progress, category coverage, and export readiness.
@@ -87,13 +87,13 @@ export const TaxYearDashboard = () => {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="secondary">
-            <Link to={reviewQueuePath('pending')}>
-              Review pending
+            <Link to={reviewQueuePath(summary.year, 'pending')}>
+              Review
               <ArrowRight />
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to={reviewQueuePath('rejected')}>
+            <Link to={reviewQueuePath(summary.year, 'rejected')}>
               View rejected
               <ArrowRight />
             </Link>
