@@ -6,19 +6,19 @@ Desktop app for collecting invoices for tax declaration preparation.
 
 Deductions helps people in Germany collect invoices and receipts to save money through income tax deductions.
 
-While you may know that certain expenses can lower your taxable income, the supporting documents are often scattered across email inboxes, online shops, PDFs, photos, local folders, and paper receipts.
+You may know that certain expenses can lower your taxable income, but the supporting documents are often scattered across email inboxes, online shops, PDFs, photos, local folders, and paper receipts.
 
 Does this sound familiar?
 
 1. You postpone collecting them until close to the tax deadline.
-2. You have to remember what was bought and why it was tax-relevant.
-3. You search for missing invoices and receipts while under time pressure.
-4. Even if a tax consultant files the return, you still have to do the time-consuming work of collecting all the documents.
+2. You have to remember what was purchased and why it was tax relevant.
+3. You search for missing invoices and receipts under time pressure.
+4. Even if a tax consultant files the return, you still have to collect all the documents, which is time-consuming.
 5. You lose money by missing items or not filing your tax return at all.
 
-The app transforms this task from a late, stressful, memory-based activity into a regular, AI-assisted, money-saving process.
+The app transforms this task from a late, stressful, memory-based activity into an automated, AI-assisted, money-saving process.
 
-The practical outcome is a clear handover package for tax consultants or individuals preparing their own declarations.
+The app is not a full tax declaration assistant. Use one of the existing services for that. Its job is to reduce the manual burden of finding, collecting, classifying, explaining, and exporting invoices relevant to deductions. Simply create a neat handover package for tax consultants or your own tax declaration, and start saving money.
 
 ![Deductions app screenshot](screenshot.png)
 
