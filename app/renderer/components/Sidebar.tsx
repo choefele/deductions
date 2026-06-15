@@ -8,13 +8,9 @@ import {
   Server,
 } from "lucide-react";
 
-import type {
-  SourceSummary,
-  TaxYearSummary,
-} from "../../shared/deductions";
+import type { SourceSummary, TaxYearSummary } from "../../shared/deductions";
 import { categoryPath, reviewQueuePath, taxYearPath } from "@/navigation";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Badge } from "./ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -241,9 +237,6 @@ export const AppSidebar = ({
                 isActive={locationPathname === "/sources"}
               />
             </SidebarMenu>
-            <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
-              <Badge variant="secondary">Manual uploads first</Badge>
-            </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
