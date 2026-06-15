@@ -1,4 +1,4 @@
-import type { CountSummary } from '@/data/deductionRepository';
+import type { CountSummary } from '../../shared/deductions';
 
 export const formatCurrency = (amount: number, currency = 'EUR') =>
   new Intl.NumberFormat('de-DE', {
@@ -17,7 +17,4 @@ export const countCards = (counts: CountSummary) => [
   { label: 'Pending', value: counts.pending },
   { label: 'Accepted', value: counts.accepted },
   { label: 'Rejected', value: counts.rejected },
-  { label: 'Low confidence', value: counts.lowConfidence },
-  { label: 'Consultant review', value: counts.consultantReview },
-  { label: 'Export issues', value: counts.exportIssues },
 ];

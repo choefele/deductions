@@ -1,7 +1,7 @@
 import { useLoaderData } from 'react-router';
 import { Server } from 'lucide-react';
 
-import type { SourceId } from '@/data/deductionRepository';
+import type { SourceSummary } from '../../shared/deductions';
 import {
   Card,
   CardContent,
@@ -11,11 +11,7 @@ import {
 } from '@/components/ui/card';
 
 export const SourcesView = () => {
-  const sources = useLoaderData() as Array<{
-    id: SourceId;
-    label: string;
-    count: number;
-  }>;
+  const sources = useLoaderData() as SourceSummary[];
 
   return (
     <main className="space-y-6 p-6">
@@ -34,11 +30,14 @@ export const SourcesView = () => {
                 {source.label}
               </CardTitle>
               <CardDescription>
-                {source.count} invoice{source.count === 1 ? '' : 's'} in mock data.
+                {source.invoiceItemCount} item
+                {source.invoiceItemCount === 1 ? '' : 's'} from{' '}
+                {source.documentCount} document
+                {source.documentCount === 1 ? '' : 's'}.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              {source.id === 'manual-upload'
+              {source.kind === 'manual-upload'
                 ? 'Use Import invoice in the header to select files.'
                 : 'Connected source setup is deferred.'}
             </CardContent>

@@ -1,8 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-
-import BetterSqlite3 from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
+import { drizzle } from 'drizzle-orm/node-sqlite';
 
 import { ensureDocumentsDirectory } from './documentStorage';
 import { runMigrations } from './migrations';
@@ -20,7 +19,7 @@ import {
 } from './seedDevelopmentData';
 import { schema } from './schema';
 import { SqliteDeductionsData } from './sqliteDeductionsData';
-import type { DeductionsDrizzleDatabase } from './types';
+import type { DeductionsDatabase, DeductionsSqliteClient } from './types';
 
 export type DeductionsDatabaseHandle = {
   appDataDirectory: string;
@@ -28,8 +27,8 @@ export type DeductionsDatabaseHandle = {
   activeProfile: ProfileRegistryEntry;
   profileDirectory: string;
   databasePath: string;
-  sqlite: BetterSqlite3.Database;
-  db: DeductionsDrizzleDatabase;
+  sqlite: DeductionsSqliteClient;
+  db: DeductionsDatabase;
   data: SqliteDeductionsData;
   close(): void;
 };
@@ -41,10 +40,10 @@ export type InitializeDeductionsDatabaseOptions = {
   now?: Date;
 };
 
-const applyPragmas = (sqlite: BetterSqlite3.Database) => {
-  sqlite.pragma('foreign_keys = ON');
-  sqlite.pragma('journal_mode = WAL');
-  sqlite.pragma('busy_timeout = 5000');
+const applyPragmas = (sqlite: DeductionsSqliteClient) => {
+  sqlite.exec('pragma foreign_keys = ON');
+  sqlite.exec('pragma journal_mode = WAL');
+  sqlite.exec('pragma busy_timeout = 5000');
 };
 
 export const initializeDeductionsDatabase = ({
@@ -61,10 +60,9 @@ export const initializeDeductionsDatabase = ({
   mkdirSync(profileDirectory, { recursive: true });
   ensureDocumentsDirectory(profileDirectory);
 
-  const sqlite = new BetterSqlite3(databasePath);
+  const sqlite = new DatabaseSync(databasePath);
   applyPragmas(sqlite);
-
-  const db = drizzle(sqlite, { schema });
+  const db = drizzle({ client: sqlite, schema });
   runMigrations(db, migrationsFolder);
 
   const nowMs = now.getTime();

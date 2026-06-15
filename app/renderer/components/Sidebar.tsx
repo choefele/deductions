@@ -6,14 +6,12 @@ import {
   FileQuestion,
   Inbox,
   Server,
-  ShieldQuestion,
-  TriangleAlert,
 } from "lucide-react";
 
 import type {
-  SourceId,
+  SourceSummary,
   TaxYearSummary,
-} from "@/data/deductionRepository";
+} from "../../shared/deductions";
 import { categoryPath, reviewQueuePath, taxYearPath } from "@/navigation";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -40,7 +38,7 @@ import {
 
 type AppSidebarProps = {
   locationPathname: string;
-  sources: Array<{ id: SourceId; label: string; count: number }>;
+  sources: SourceSummary[];
   taxYears: TaxYearSummary[];
 };
 
@@ -89,11 +87,10 @@ export const AppSidebar = ({
   const allCounts = taxYears.reduce(
     (counts, year) => ({
       pending: counts.pending + year.counts.pending,
-      lowConfidence: counts.lowConfidence + year.counts.lowConfidence,
-      consultantReview: counts.consultantReview + year.counts.consultantReview,
-      exportIssues: counts.exportIssues + year.counts.exportIssues,
+      accepted: counts.accepted + year.counts.accepted,
+      rejected: counts.rejected + year.counts.rejected,
     }),
-    { pending: 0, lowConfidence: 0, consultantReview: 0, exportIssues: 0 },
+    { pending: 0, accepted: 0, rejected: 0 },
   );
 
   return (
@@ -142,29 +139,18 @@ export const AppSidebar = ({
                 isActive={locationPathname === reviewQueuePath("pending")}
               />
               <SidebarLink
-                to={reviewQueuePath("low-confidence")}
-                label="Low confidence"
-                icon={<TriangleAlert />}
-                badge={allCounts.lowConfidence}
-                isActive={
-                  locationPathname === reviewQueuePath("low-confidence")
-                }
-              />
-              <SidebarLink
-                to={reviewQueuePath("consultant-review")}
-                label="Consultant review"
-                icon={<ShieldQuestion />}
-                badge={allCounts.consultantReview}
-                isActive={
-                  locationPathname === reviewQueuePath("consultant-review")
-                }
-              />
-              <SidebarLink
-                to={reviewQueuePath("export-issues")}
-                label="Export issues"
+                to={reviewQueuePath("accepted")}
+                label="Accepted"
                 icon={<FileQuestion />}
-                badge={allCounts.exportIssues}
-                isActive={locationPathname === reviewQueuePath("export-issues")}
+                badge={allCounts.accepted}
+                isActive={locationPathname === reviewQueuePath("accepted")}
+              />
+              <SidebarLink
+                to={reviewQueuePath("rejected")}
+                label="Rejected"
+                icon={<FileQuestion />}
+                badge={allCounts.rejected}
+                isActive={locationPathname === reviewQueuePath("rejected")}
               />
             </SidebarMenu>
           </SidebarGroupContent>
@@ -249,7 +235,7 @@ export const AppSidebar = ({
                 label="Sources"
                 icon={<Server />}
                 badge={sources.reduce(
-                  (total, source) => total + source.count,
+                  (total, source) => total + source.invoiceItemCount,
                   0,
                 )}
                 isActive={locationPathname === "/sources"}

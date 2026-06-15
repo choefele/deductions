@@ -1,7 +1,8 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import type { ReviewQueueId, TaxCategoryId } from './data/deductionRepository';
-import { deductionRepository } from './data/repository';
+import { reviewStatuses, taxCategoryIds } from '../shared/deductions';
+import type { ReviewStatus, TaxCategoryId } from '../shared/deductions';
+import { deductionsData } from './data/repository';
 
 const readYearParam = (params: LoaderFunctionArgs['params']) => {
   const year = Number(params.year);
@@ -14,18 +15,18 @@ const readYearParam = (params: LoaderFunctionArgs['params']) => {
 };
 
 export const rootLoader = async () => ({
-  allYears: await deductionRepository.getAllYearsSummary(),
-  taxYears: await deductionRepository.listTaxYears(),
-  categories: await deductionRepository.listCategories(),
-  sources: await deductionRepository.listSources(),
+  allYears: await deductionsData.getAllYearsSummary(),
+  taxYears: await deductionsData.listTaxYears(),
+  categories: await deductionsData.listCategories(),
+  sources: await deductionsData.listSources(),
 });
 
 export const allYearsLoader = async () =>
-  deductionRepository.getAllYearsSummary();
+  deductionsData.getAllYearsSummary();
 
 export const taxYearLoader = async ({ params }: LoaderFunctionArgs) => {
   const year = readYearParam(params);
-  const summary = await deductionRepository.getTaxYearSummary(year);
+  const summary = await deductionsData.getTaxYearSummary(year);
 
   if (!summary) {
     throw new Response('Tax year not found', { status: 404 });
@@ -38,10 +39,17 @@ export const categoryLoader = async ({ params }: LoaderFunctionArgs) => {
   const year = readYearParam(params);
   const categoryId = params.categoryId as TaxCategoryId;
 
+  if (!taxCategoryIds.includes(categoryId)) {
+    throw new Response('Category not found', { status: 404 });
+  }
+
   return {
     year,
     categoryId,
-    invoices: await deductionRepository.listInvoicesByCategory(year, categoryId),
+    invoiceItems: await deductionsData.listInvoiceItemsByCategory(
+      year,
+      categoryId,
+    ),
   };
 };
 
@@ -52,7 +60,7 @@ export const invoiceLoader = async ({ params }: LoaderFunctionArgs) => {
     throw new Response('Invoice id is required', { status: 400 });
   }
 
-  const invoice = await deductionRepository.getInvoiceById(invoiceId);
+  const invoice = await deductionsData.getInvoiceItemById(invoiceId);
 
   if (!invoice) {
     throw new Response('Invoice not found', { status: 404 });
@@ -62,12 +70,16 @@ export const invoiceLoader = async ({ params }: LoaderFunctionArgs) => {
 };
 
 export const reviewQueueLoader = async ({ params }: LoaderFunctionArgs) => {
-  const queue = params.queue as ReviewQueueId;
+  const queue = params.queue as ReviewStatus;
+
+  if (!reviewStatuses.includes(queue)) {
+    throw new Response('Review queue not found', { status: 404 });
+  }
 
   return {
     queue,
-    invoices: await deductionRepository.listReviewQueueInvoices(queue),
+    invoiceItems: await deductionsData.listInvoiceItemsByReviewStatus(queue),
   };
 };
 
-export const sourcesLoader = async () => deductionRepository.listSources();
+export const sourcesLoader = async () => deductionsData.listSources();

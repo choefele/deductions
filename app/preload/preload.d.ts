@@ -1,8 +1,8 @@
-import type { DeductionsApi } from '../shared/ipc';
+import type { DeductionsBridgeApi } from '../shared/ipc';
 
 declare global {
   interface Window {
-    deductions: DeductionsApi;
+    deductions: DeductionsBridgeApi;
   }
 }
 

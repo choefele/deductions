@@ -1,7 +1,7 @@
 import { Link, useLoaderData } from 'react-router';
-import { ArrowRight, FileWarning, Inbox, TriangleAlert } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Inbox, XCircle } from 'lucide-react';
 
-import type { AllYearsSummary } from '@/data/deductionRepository';
+import type { AllYearsSummary } from '../../shared/deductions';
 import { reviewQueuePath, taxYearPath } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,38 +38,38 @@ export const AllYearsDashboard = () => {
                 <Inbox className="size-4" />
                 Pending review
               </CardTitle>
-              <CardDescription>Documents waiting for a decision.</CardDescription>
+              <CardDescription>Items waiting for a decision.</CardDescription>
             </CardHeader>
             <CardContent className="text-2xl font-semibold">
               {summary.counts.pending}
             </CardContent>
           </Card>
         </Link>
-        <Link to={reviewQueuePath('low-confidence')}>
+        <Link to={reviewQueuePath('accepted')}>
           <Card className="h-full transition-colors hover:bg-accent/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TriangleAlert className="size-4" />
-                Low confidence
+                <CheckCircle2 className="size-4" />
+                Accepted
               </CardTitle>
-              <CardDescription>Items where extraction needs attention.</CardDescription>
+              <CardDescription>Items ready to include later.</CardDescription>
             </CardHeader>
             <CardContent className="text-2xl font-semibold">
-              {summary.counts.lowConfidence}
+              {summary.counts.accepted}
             </CardContent>
           </Card>
         </Link>
-        <Link to={reviewQueuePath('export-issues')}>
+        <Link to={reviewQueuePath('rejected')}>
           <Card className="h-full transition-colors hover:bg-accent/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileWarning className="size-4" />
-                Export issues
+                <XCircle className="size-4" />
+                Rejected
               </CardTitle>
-              <CardDescription>Accepted items missing export evidence.</CardDescription>
+              <CardDescription>Items excluded from export.</CardDescription>
             </CardHeader>
             <CardContent className="text-2xl font-semibold">
-              {summary.counts.exportIssues}
+              {summary.counts.rejected}
             </CardContent>
           </Card>
         </Link>
@@ -106,26 +106,26 @@ export const AllYearsDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent invoices</CardTitle>
-            <CardDescription>Latest imported or reviewed documents.</CardDescription>
+            <CardTitle>Recent items</CardTitle>
+            <CardDescription>Latest imported or reviewed items.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {summary.recentInvoices.map((invoice) => (
+            {summary.recentInvoiceItems.map((invoiceItem) => (
               <Link
-                key={invoice.id}
+                key={invoiceItem.id}
                 className="block rounded-md border p-3 transition-colors hover:bg-accent/40"
-                to={`/invoices/${invoice.id}`}
+                to={`/invoices/${invoiceItem.id}`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="truncate text-sm font-medium">
-                    {invoice.vendor}
+                    {invoiceItem.vendor}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {formatCurrency(invoice.amount, invoice.currency)}
+                    {formatCurrency(invoiceItem.amount, invoiceItem.currency)}
                   </span>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {formatDate(invoice.date)} · {invoice.taxYear}
+                  {formatDate(invoiceItem.invoiceDate)} · {invoiceItem.taxYear}
                 </div>
               </Link>
             ))}

@@ -1,13 +1,13 @@
 import { useLoaderData } from 'react-router';
 
-import type { Invoice, ReviewQueueId } from '@/data/deductionRepository';
-import { reviewQueueLabels } from '@/navigation';
+import type { InvoiceItemSummary } from '../../shared/deductions';
+import { reviewQueueLabels, type ReviewQueueId } from '@/navigation';
 import { InvoiceTable } from '@/components/InvoiceTable';
 
 export const ReviewQueueView = () => {
-  const { queue, invoices } = useLoaderData() as {
+  const { queue, invoiceItems } = useLoaderData() as {
     queue: ReviewQueueId;
-    invoices: Invoice[];
+    invoiceItems: InvoiceItemSummary[];
   };
 
   return (
@@ -17,10 +17,11 @@ export const ReviewQueueView = () => {
           {reviewQueueLabels[queue]}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {invoices.length} open todo{invoices.length === 1 ? '' : 's'} in this queue.
+          {invoiceItems.length} item{invoiceItems.length === 1 ? '' : 's'} in
+          this queue.
         </p>
       </div>
-      <InvoiceTable invoices={invoices} />
+      <InvoiceTable invoiceItems={invoiceItems} />
     </main>
   );
 };

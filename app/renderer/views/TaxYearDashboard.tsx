@@ -1,7 +1,7 @@
 import { Link, useLoaderData } from 'react-router';
 import { ArrowRight, Download } from 'lucide-react';
 
-import type { TaxYearSummary } from '@/data/deductionRepository';
+import type { TaxYearSummary } from '../../shared/deductions';
 import { categoryPath, reviewQueuePath } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -93,8 +93,8 @@ export const TaxYearDashboard = () => {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to={reviewQueuePath('export-issues')}>
-              Check export issues
+            <Link to={reviewQueuePath('rejected')}>
+              View rejected
               <ArrowRight />
             </Link>
           </Button>

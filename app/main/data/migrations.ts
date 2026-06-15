@@ -1,11 +1,9 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { migrate } from 'drizzle-orm/node-sqlite/migrator';
 
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-
-import type { schema } from './schema';
+import type { DeductionsDatabase } from './types';
 
 export const defaultMigrationsFolder = fileURLToPath(
   new URL('./drizzle', import.meta.url),
@@ -14,18 +12,29 @@ export const defaultMigrationsFolder = fileURLToPath(
 const getElectronResourcesPath = () =>
   (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
 
+const hasMigrationFiles = (folder: string) => {
+  if (!existsSync(folder)) {
+    return false;
+  }
+
+  return readdirSync(folder, { withFileTypes: true }).some(
+    (entry) =>
+      entry.isDirectory() &&
+      existsSync(join(folder, entry.name, 'migration.sql')),
+  );
+};
+
 export const resolveMigrationsFolder = () => {
   const resourcesPath = getElectronResourcesPath();
   const candidates = [
     defaultMigrationsFolder,
     join(process.cwd(), 'app/main/data/drizzle'),
+    resourcesPath ? join(resourcesPath, 'drizzle') : '',
     resourcesPath ? join(resourcesPath, 'app.asar', 'app/main/data/drizzle') : '',
     resourcesPath ? join(resourcesPath, 'app', 'app/main/data/drizzle') : '',
   ].filter(Boolean);
 
-  const migrationsFolder = candidates.find((candidate) =>
-    existsSync(join(candidate, 'meta/_journal.json')),
-  );
+  const migrationsFolder = candidates.find(hasMigrationFiles);
 
   if (!migrationsFolder) {
     throw new Error(
@@ -37,7 +46,7 @@ export const resolveMigrationsFolder = () => {
 };
 
 export const runMigrations = (
-  db: BetterSQLite3Database<typeof schema>,
+  db: DeductionsDatabase,
   migrationsFolder = resolveMigrationsFolder(),
 ) => {
   migrate(db, { migrationsFolder });

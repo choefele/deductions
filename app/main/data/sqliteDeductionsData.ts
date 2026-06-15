@@ -1,3 +1,5 @@
+import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
+
 import type {
   CountSummary,
   Currency,
@@ -15,7 +17,8 @@ import type {
   TaxYearSummary,
 } from '../../shared/deductions';
 import { taxCategories } from '../../shared/deductions';
-import type { DeductionsDrizzleDatabase } from './types';
+import { documents, invoiceItems, invoices, sources } from './schema';
+import type { DeductionsDatabase } from './types';
 
 type CountRow = {
   reviewStatus: ReviewStatus;
@@ -66,6 +69,49 @@ type InvoiceHeaderRow = {
 
 type SourceSummaryRow = Omit<SourceSummary, 'kind'> & {
   kind: SourceKind;
+};
+
+const itemSummarySelection = {
+  id: invoiceItems.id,
+  invoiceId: invoiceItems.invoiceId,
+  documentId: invoices.documentId,
+  sourceId: documents.sourceId,
+  vendor: invoices.vendor,
+  invoiceDate: invoices.invoiceDate,
+  invoiceNumber: invoices.invoiceNumber,
+  description: invoiceItems.description,
+  amountCents: invoiceItems.amountCents,
+  currency: invoiceItems.currency,
+  taxYear: invoiceItems.taxYear,
+  categoryId: invoiceItems.categoryId,
+  reviewStatus: invoiceItems.reviewStatus,
+};
+
+const itemDetailSelection = {
+  ...itemSummarySelection,
+  deductionReason: invoiceItems.deductionReason,
+  note: invoiceItems.note,
+  documentSummaryId: documents.id,
+  originalFileName: documents.originalFileName,
+  storagePath: documents.storagePath,
+  mimeType: documents.mimeType,
+  sha256: documents.sha256,
+  importedAt: documents.importedAt,
+};
+
+const invoiceHeaderSelection = {
+  id: invoices.id,
+  documentId: invoices.documentId,
+  sourceId: documents.sourceId,
+  vendor: invoices.vendor,
+  invoiceDate: invoices.invoiceDate,
+  invoiceNumber: invoices.invoiceNumber,
+  documentSummaryId: documents.id,
+  originalFileName: documents.originalFileName,
+  storagePath: documents.storagePath,
+  mimeType: documents.mimeType,
+  sha256: documents.sha256,
+  importedAt: documents.importedAt,
 };
 
 const emptyCounts = (): CountSummary => ({
@@ -127,7 +173,7 @@ const mapInvoiceHeader = (row: InvoiceHeaderRow): InvoiceHeader => ({
 });
 
 export class SqliteDeductionsData implements DeductionsDataApi {
-  constructor(private readonly db: DeductionsDrizzleDatabase) {}
+  constructor(private readonly db: DeductionsDatabase) {}
 
   async listCategories(): Promise<TaxCategory[]> {
     return taxCategories;
@@ -139,35 +185,28 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     return {
       years,
       counts: this.countSummary(),
-      recentInvoiceItems: this.listItemSummaries('', [], 'ii.updated_at desc', 5),
+      recentInvoiceItems: this.listRecentItemSummaries(),
     };
   }
 
   async listTaxYears(): Promise<TaxYearSummary[]> {
-    const rows = this.db.$client
-      .prepare(
-        `
-          select distinct tax_year as year
-          from invoice_items
-          order by tax_year desc
-        `,
-      )
-      .all() as Array<{ year: number }>;
+    const rows = this.db
+      .select({ year: invoiceItems.taxYear })
+      .from(invoiceItems)
+      .groupBy(invoiceItems.taxYear)
+      .orderBy(desc(invoiceItems.taxYear))
+      .all();
 
     return rows.map((row) => this.buildTaxYearSummary(row.year));
   }
 
   async getTaxYearSummary(year: number) {
-    const row = this.db.$client
-      .prepare(
-        `
-          select 1 as existsFlag
-          from invoice_items
-          where tax_year = ?
-          limit 1
-        `,
-      )
-      .get(year) as { existsFlag: number } | undefined;
+    const row = this.db
+      .select({ existsFlag: sql<number>`1` })
+      .from(invoiceItems)
+      .where(eq(invoiceItems.taxYear, year))
+      .limit(1)
+      .get();
 
     if (!row) {
       return null;
@@ -180,75 +219,72 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     year: number,
     categoryId: TaxCategoryId,
   ): Promise<InvoiceItemSummary[]> {
-    return this.listItemSummaries(
-      'where ii.tax_year = ? and ii.category_id = ?',
-      [year, categoryId],
-      'i.invoice_date desc, ii.sort_order asc',
-    );
+    const rows = this.db
+      .select(itemSummarySelection)
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(
+        and(
+          eq(invoiceItems.taxYear, year),
+          eq(invoiceItems.categoryId, categoryId),
+        ),
+      )
+      .orderBy(desc(invoices.invoiceDate), asc(invoiceItems.sortOrder))
+      .all() as ItemSummaryRow[];
+
+    return rows.map(mapItemSummary);
   }
 
   async listInvoiceItemsByReviewStatus(
     reviewStatus: ReviewStatus,
   ): Promise<InvoiceItemSummary[]> {
-    return this.listItemSummaries(
-      'where ii.review_status = ?',
-      [reviewStatus],
-      'ii.updated_at desc',
-    );
+    const rows = this.db
+      .select(itemSummarySelection)
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(eq(invoiceItems.reviewStatus, reviewStatus))
+      .orderBy(desc(invoiceItems.updatedAt))
+      .all() as ItemSummaryRow[];
+
+    return rows.map(mapItemSummary);
   }
 
   async getInvoiceItemById(invoiceItemId: string) {
-    const row = this.db.$client
-      .prepare(
-        `
-          ${this.itemDetailSelectSql()}
-          where ii.id = ?
-          limit 1
-        `,
-      )
-      .get(invoiceItemId) as ItemDetailRow | undefined;
+    const row = this.db
+      .select(itemDetailSelection)
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(eq(invoiceItems.id, invoiceItemId))
+      .limit(1)
+      .get() as ItemDetailRow | undefined;
 
     return row ? mapItemDetail(row) : null;
   }
 
   async getInvoiceById(invoiceId: string): Promise<InvoiceDetail | null> {
-    const row = this.db.$client
-      .prepare(
-        `
-          select
-            i.id as id,
-            i.document_id as documentId,
-            d.source_id as sourceId,
-            i.vendor as vendor,
-            i.invoice_date as invoiceDate,
-            i.invoice_number as invoiceNumber,
-            d.id as documentSummaryId,
-            d.original_file_name as originalFileName,
-            d.storage_path as storagePath,
-            d.mime_type as mimeType,
-            d.sha256 as sha256,
-            d.imported_at as importedAt
-          from invoices i
-          left join documents d on d.id = i.document_id
-          where i.id = ?
-          limit 1
-        `,
-      )
-      .get(invoiceId) as InvoiceHeaderRow | undefined;
+    const row = this.db
+      .select(invoiceHeaderSelection)
+      .from(invoices)
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(eq(invoices.id, invoiceId))
+      .limit(1)
+      .get() as InvoiceHeaderRow | undefined;
 
     if (!row) {
       return null;
     }
 
-    const itemRows = this.db.$client
-      .prepare(
-        `
-          ${this.itemDetailSelectSql()}
-          where i.id = ?
-          order by ii.sort_order asc, ii.created_at asc
-        `,
-      )
-      .all(invoiceId) as ItemDetailRow[];
+    const itemRows = this.db
+      .select(itemDetailSelection)
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(eq(invoices.id, invoiceId))
+      .orderBy(asc(invoiceItems.sortOrder), asc(invoiceItems.createdAt))
+      .all() as ItemDetailRow[];
 
     return {
       ...mapInvoiceHeader(row),
@@ -258,32 +294,32 @@ export class SqliteDeductionsData implements DeductionsDataApi {
   }
 
   async listSources(): Promise<SourceSummary[]> {
-    return this.db.$client
-      .prepare(
-        `
-          select
-            s.id as id,
-            s.kind as kind,
-            s.label as label,
-            count(distinct d.id) as documentCount,
-            count(distinct i.id) as invoiceCount,
-            count(distinct ii.id) as invoiceItemCount
-          from sources s
-          left join documents d on d.source_id = s.id
-          left join invoices i on i.document_id = d.id
-          left join invoice_items ii on ii.invoice_id = i.id
-          group by s.id, s.label
-          order by s.created_at asc
-        `,
-      )
+    return this.db
+      .select({
+        id: sources.id,
+        kind: sources.kind,
+        label: sources.label,
+        documentCount: sql<number>`count(distinct ${documents.id})`,
+        invoiceCount: sql<number>`count(distinct ${invoices.id})`,
+        invoiceItemCount: sql<number>`count(distinct ${invoiceItems.id})`,
+      })
+      .from(sources)
+      .leftJoin(documents, eq(documents.sourceId, sources.id))
+      .leftJoin(invoices, eq(invoices.documentId, documents.id))
+      .leftJoin(invoiceItems, eq(invoiceItems.invoiceId, invoices.id))
+      .groupBy(sources.id, sources.label)
+      .orderBy(asc(sources.createdAt))
       .all() as SourceSummaryRow[];
   }
 
   private buildTaxYearSummary(year: number): TaxYearSummary {
     const categories = taxCategories.map((category) => {
-      const whereSql = 'where ii.tax_year = ? and ii.category_id = ?';
-      const params = [year, category.id];
-      const counts = this.countSummary(whereSql, params);
+      const counts = this.countSummary(
+        and(
+          eq(invoiceItems.taxYear, year),
+          eq(invoiceItems.categoryId, category.id),
+        ),
+      );
 
       return {
         category: {
@@ -295,7 +331,7 @@ export class SqliteDeductionsData implements DeductionsDataApi {
         counts,
       };
     });
-    const counts = this.countSummary('where ii.tax_year = ?', [year]);
+    const counts = this.countSummary(eq(invoiceItems.taxYear, year));
 
     return {
       year,
@@ -305,21 +341,18 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     };
   }
 
-  private countSummary(whereSql = '', params: unknown[] = []): CountSummary {
+  private countSummary(where?: SQL): CountSummary {
     const counts = emptyCounts();
-    const statusRows = this.db.$client
-      .prepare(
-        `
-          select
-            ii.review_status as reviewStatus,
-            count(*) as count
-          from invoice_items ii
-          join invoices i on i.id = ii.invoice_id
-          ${whereSql}
-          group by ii.review_status
-        `,
-      )
-      .all(...params) as CountRow[];
+    const statusRows = this.db
+      .select({
+        reviewStatus: invoiceItems.reviewStatus,
+        count: sql<number>`count(*)`,
+      })
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .where(where)
+      .groupBy(invoiceItems.reviewStatus)
+      .all() as CountRow[];
 
     statusRows.forEach((row) => {
       counts[row.reviewStatus] = row.count;
@@ -328,76 +361,16 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     return counts;
   }
 
-  private listItemSummaries(
-    whereSql: string,
-    params: unknown[],
-    orderBySql: string,
-    limit?: number,
-  ): InvoiceItemSummary[] {
-    const limitSql = limit ? `limit ${limit}` : '';
-    const rows = this.db.$client
-      .prepare(
-        `
-          ${this.itemSummarySelectSql()}
-          ${whereSql}
-          order by ${orderBySql}
-          ${limitSql}
-        `,
-      )
-      .all(...params) as ItemSummaryRow[];
+  private listRecentItemSummaries(): InvoiceItemSummary[] {
+    const rows = this.db
+      .select(itemSummarySelection)
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .orderBy(desc(invoiceItems.updatedAt))
+      .limit(5)
+      .all() as ItemSummaryRow[];
 
     return rows.map(mapItemSummary);
-  }
-
-  private itemSummarySelectSql() {
-    return `
-      select
-        ii.id as id,
-        ii.invoice_id as invoiceId,
-        i.document_id as documentId,
-        d.source_id as sourceId,
-        i.vendor as vendor,
-        i.invoice_date as invoiceDate,
-        i.invoice_number as invoiceNumber,
-        ii.description as description,
-        ii.amount_cents as amountCents,
-        ii.currency as currency,
-        ii.tax_year as taxYear,
-        ii.category_id as categoryId,
-        ii.review_status as reviewStatus
-      from invoice_items ii
-      join invoices i on i.id = ii.invoice_id
-      left join documents d on d.id = i.document_id
-    `;
-  }
-
-  private itemDetailSelectSql() {
-    return `
-      select
-        ii.id as id,
-        ii.invoice_id as invoiceId,
-        i.document_id as documentId,
-        d.source_id as sourceId,
-        i.vendor as vendor,
-        i.invoice_date as invoiceDate,
-        i.invoice_number as invoiceNumber,
-        ii.description as description,
-        ii.amount_cents as amountCents,
-        ii.currency as currency,
-        ii.tax_year as taxYear,
-        ii.category_id as categoryId,
-        ii.review_status as reviewStatus,
-        ii.deduction_reason as deductionReason,
-        ii.note as note,
-        d.id as documentSummaryId,
-        d.original_file_name as originalFileName,
-        d.storage_path as storagePath,
-        d.mime_type as mimeType,
-        d.sha256 as sha256,
-        d.imported_at as importedAt
-      from invoice_items ii
-      join invoices i on i.id = ii.invoice_id
-      left join documents d on d.id = i.document_id
-    `;
   }
 }

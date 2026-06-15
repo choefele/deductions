@@ -1,24 +1,31 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { drizzle } from 'drizzle-orm/node-sqlite';
 
-import BetterSqlite3 from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { runMigrations } from '../../../app/main/data/migrations';
+import {
+  defaultMigrationsFolder,
+  runMigrations,
+} from '../../../app/main/data/migrations';
 import { schema } from '../../../app/main/data/schema';
 
 const tempDirectories: string[] = [];
-const databases: BetterSqlite3.Database[] = [];
+const databases: DatabaseSync[] = [];
 
 const createDatabase = () => {
   const directory = mkdtempSync(join(tmpdir(), 'deductions-migrations-test-'));
   tempDirectories.push(directory);
-  const sqlite = new BetterSqlite3(join(directory, 'deductions.sqlite'));
+  const sqlite = new DatabaseSync(join(directory, 'deductions.sqlite'));
   databases.push(sqlite);
-  sqlite.pragma('foreign_keys = ON');
-  return drizzle(sqlite, { schema });
+  sqlite.exec('pragma foreign_keys = ON');
+  return {
+    db: drizzle({ client: sqlite, schema }),
+    sqlite,
+  };
 };
 
 afterEach(() => {
@@ -33,11 +40,11 @@ afterEach(() => {
 
 describe('database migrations', () => {
   it('migrates an empty database with required tables and indexes', async () => {
-    const db = createDatabase();
+    const { db, sqlite } = createDatabase();
 
     runMigrations(db);
 
-    const tables = db.$client
+    const tables = sqlite
       .prepare(
         `
           select name
@@ -47,7 +54,7 @@ describe('database migrations', () => {
         `,
       )
       .all() as Array<{ name: string }>;
-    const indexes = db.$client
+    const indexes = sqlite
       .prepare(
         `
           select name
@@ -74,5 +81,85 @@ describe('database migrations', () => {
         'invoices_invoice_unique',
       ]),
     );
+  });
+
+  it("does not re-run migrations tracked by Drizzle's migration table shape", () => {
+    const { db, sqlite } = createDatabase();
+
+    runMigrations(db);
+    expect(() => runMigrations(db)).not.toThrow();
+
+    const migrations = sqlite
+      .prepare(
+        `
+          select id, hash, created_at, name, applied_at
+          from __drizzle_migrations
+          order by created_at
+        `,
+      )
+      .all() as Array<{
+        id: number;
+        hash: string;
+        created_at: number;
+        name: string;
+        applied_at: string | null;
+      }>;
+
+    expect(migrations).toHaveLength(1);
+    expect(migrations[0]).toMatchObject({
+      id: 1,
+      created_at: 1781255506000,
+      name: '20260612091146_initial',
+    });
+    expect(migrations[0].hash).toHaveLength(64);
+  });
+
+  it('upgrades an existing migration table from the previous Drizzle shape', () => {
+    const { db, sqlite } = createDatabase();
+    const migrationSql = readFileSync(
+      join(defaultMigrationsFolder, '20260612091146_initial/migration.sql'),
+      'utf8',
+    );
+    const hash = createHash('sha256').update(migrationSql).digest('hex');
+
+    sqlite.exec(`
+      create table __drizzle_migrations (
+        id integer primary key autoincrement,
+        hash text not null,
+        created_at numeric
+      )
+    `);
+    sqlite
+      .prepare(
+        `
+          insert into __drizzle_migrations (hash, created_at)
+          values (?, ?)
+        `,
+      )
+      .run(hash, 1781255506428);
+
+    expect(() => runMigrations(db)).not.toThrow();
+
+    const migration = sqlite
+      .prepare(
+        `
+          select hash, created_at, name, applied_at
+          from __drizzle_migrations
+          limit 1
+        `,
+      )
+      .get() as {
+        hash: string;
+        created_at: number;
+        name: string;
+        applied_at: string | null;
+      };
+
+    expect(migration).toEqual({
+      hash,
+      created_at: 1781255506428,
+      name: '20260612091146_initial',
+      applied_at: null,
+    });
   });
 });

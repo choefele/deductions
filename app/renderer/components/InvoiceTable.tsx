@@ -1,8 +1,8 @@
 import { Link } from 'react-router';
 
-import type { Invoice } from '@/data/deductionRepository';
+import type { InvoiceItemSummary } from '../../shared/deductions';
 import { categoryLabel, invoicePath } from '@/navigation';
-import { ConfidenceBadge, FlagBadge, StatusBadge } from './StatusBadge';
+import { StatusBadge } from './StatusBadge';
 import {
   Table,
   TableBody,
@@ -25,8 +25,12 @@ const formatDate = (date: string) =>
     year: 'numeric',
   }).format(new Date(date));
 
-export const InvoiceTable = ({ invoices }: { invoices: Invoice[] }) => {
-  if (invoices.length === 0) {
+export const InvoiceTable = ({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItemSummary[];
+}) => {
+  if (invoiceItems.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-8 text-center">
         <h3 className="text-sm font-medium">No invoices here yet</h3>
@@ -46,36 +50,30 @@ export const InvoiceTable = ({ invoices }: { invoices: Invoice[] }) => {
             <TableHead>Date</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Confidence</TableHead>
             <TableHead className="text-right">Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {invoices.map((invoice) => (
-            <TableRow key={invoice.id}>
+          {invoiceItems.map((invoiceItem) => (
+            <TableRow key={invoiceItem.id}>
               <TableCell className="min-w-52">
                 <Link
                   className="font-medium text-foreground underline-offset-4 hover:underline"
-                  to={invoicePath(invoice.id)}
+                  to={invoicePath(invoiceItem.id)}
                 >
-                  {invoice.vendor}
+                  {invoiceItem.vendor}
                 </Link>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {invoice.flags.map((flag) => (
-                    <FlagBadge key={flag} flag={flag} />
-                  ))}
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {invoiceItem.description}
                 </div>
               </TableCell>
-              <TableCell>{formatDate(invoice.date)}</TableCell>
-              <TableCell>{categoryLabel(invoice.categoryId)}</TableCell>
+              <TableCell>{formatDate(invoiceItem.invoiceDate)}</TableCell>
+              <TableCell>{categoryLabel(invoiceItem.categoryId)}</TableCell>
               <TableCell>
-                <StatusBadge status={invoice.status} />
-              </TableCell>
-              <TableCell>
-                <ConfidenceBadge confidence={invoice.confidence} />
+                <StatusBadge status={invoiceItem.reviewStatus} />
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatCurrency(invoice.amount, invoice.currency)}
+                {formatCurrency(invoiceItem.amount, invoiceItem.currency)}
               </TableCell>
             </TableRow>
           ))}

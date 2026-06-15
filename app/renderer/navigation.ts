@@ -1,15 +1,18 @@
 import type {
-  Invoice,
-  ReviewQueueId,
+  InvoiceItemDetail,
+  ReviewStatus,
   TaxCategoryId,
   TaxYearSummary,
-} from './data/deductionRepository';
+} from '../shared/deductions';
+import { taxCategories } from '../shared/deductions';
+
+export type ReviewQueueId = ReviewStatus;
 
 export type AppSelection =
   | { type: 'all-years' }
   | { type: 'tax-year'; year: number }
   | { type: 'category'; year: number; categoryId: TaxCategoryId }
-  | { type: 'invoice'; invoice: Invoice }
+  | { type: 'invoice'; invoice: InvoiceItemDetail }
   | { type: 'review-queue'; queue: ReviewQueueId }
   | { type: 'sources' }
   | { type: 'import-result' };
@@ -30,9 +33,8 @@ export const reviewQueuePath = (queue: ReviewQueueId) => `/review/${queue}`;
 
 export const reviewQueueLabels: Record<ReviewQueueId, string> = {
   pending: 'Pending review',
-  'low-confidence': 'Low confidence',
-  'consultant-review': 'Consultant review',
-  'export-issues': 'Export issues',
+  accepted: 'Accepted items',
+  rejected: 'Rejected items',
 };
 
 export const getBreadcrumbs = (selection: AppSelection): BreadcrumbItem[] => {
@@ -72,20 +74,10 @@ export const getBreadcrumbs = (selection: AppSelection): BreadcrumbItem[] => {
 };
 
 export const categoryLabel = (categoryId: TaxCategoryId) => {
-  switch (categoryId) {
-    case 'work-related-expenses':
-      return 'Work-related expenses';
-    case 'special-expenses':
-      return 'Special expenses';
-    case 'extraordinary-burdens':
-      return 'Extraordinary burdens';
-    case 'household-services':
-      return 'Household services';
-    case 'tradesperson-services':
-      return 'Tradesperson services';
-    case 'not-tax-relevant':
-      return 'Not tax-relevant';
-  }
+  return (
+    taxCategories.find((category) => category.id === categoryId)?.label ??
+    categoryId
+  );
 };
 
 export const getSelectionForPath = (

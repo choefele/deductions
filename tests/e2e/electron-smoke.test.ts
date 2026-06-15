@@ -1,7 +1,14 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { _electron as electron, expect, test } from '@playwright/test';
 
 test('opens the Deductions shell and exposes the preload API', async () => {
-  const electronApp = await electron.launch({ args: ['.'] });
+  const userDataDirectory = mkdtempSync(join(tmpdir(), 'deductions-e2e-'));
+  const electronApp = await electron.launch({
+    args: ['.', `--user-data-dir=${userDataDirectory}`],
+  });
 
   try {
     const page = await electronApp.firstWindow();
@@ -53,19 +60,29 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     const apiShape = await page.evaluate(() => ({
       hasDeductionsApi: typeof window.deductions === 'object',
       hasOpenFiles: typeof window.deductions.openFiles === 'function',
+      hasDataApi: typeof window.deductions.data === 'object',
+      hasListTaxYears:
+        typeof window.deductions.data.listTaxYears === 'function',
       platform: window.deductions.appInfo.platform,
       version: window.deductions.appInfo.version,
       hasNodeRequire: typeof Reflect.get(window, 'require') === 'function',
     }));
+    const taxYears = await page.evaluate(() =>
+      window.deductions.data.listTaxYears(),
+    );
 
     expect(apiShape).toMatchObject({
       hasDeductionsApi: true,
       hasOpenFiles: true,
+      hasDataApi: true,
+      hasListTaxYears: true,
       hasNodeRequire: false,
     });
     expect(apiShape.platform.length).toBeGreaterThan(0);
     expect(apiShape.version.length).toBeGreaterThan(0);
+    expect(taxYears.map((year) => year.year)).toContain(2025);
   } finally {
     await electronApp.close();
+    rmSync(userDataDirectory, { recursive: true, force: true });
   }
 });

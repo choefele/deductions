@@ -8,7 +8,7 @@ import {
   reviewQueuePath,
   taxYearPath,
 } from '../../../app/renderer/navigation';
-import type { TaxYearSummary } from '../../../app/renderer/data/deductionRepository';
+import type { TaxYearSummary } from '../../../app/shared/deductions';
 
 describe('navigation helpers', () => {
   it('generates stable app paths', () => {
@@ -41,9 +41,9 @@ describe('navigation helpers', () => {
       type: 'tax-year',
       year: 2025,
     });
-    expect(getSelectionForPath('/review/low-confidence', years)).toEqual({
+    expect(getSelectionForPath('/review/accepted', years)).toEqual({
       type: 'review-queue',
-      queue: 'low-confidence',
+      queue: 'accepted',
     });
   });
 });

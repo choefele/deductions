@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 
 import type {
   ReviewStatus,
@@ -6,7 +7,8 @@ import type {
 } from '../../shared/deductions';
 import { defaultSourceKind } from '../../shared/deductions';
 import type { ProfileRegistryEntry } from './profileRegistry';
-import type { DeductionsDrizzleDatabase } from './types';
+import { documents, invoiceItems, invoices, sources, userProfile } from './schema';
+import type { DeductionsDatabase } from './types';
 
 type SeedInvoiceItem = {
   hasDocument: boolean;
@@ -25,46 +27,39 @@ type SeedInvoiceItem = {
 };
 
 export const ensureUserProfile = (
-  db: DeductionsDrizzleDatabase,
+  db: DeductionsDatabase,
   profile: ProfileRegistryEntry,
   now = Date.now(),
 ) => {
-  db.$client
-    .prepare(
-      `
-        insert into user_profile (
-          id,
-          display_name,
-          settings_json,
-          created_at,
-          updated_at
-        )
-        values (
-          @id,
-          @displayName,
-          '{}',
-          @now,
-          @now
-        )
-        on conflict(id) do update set
-          display_name = excluded.display_name,
-          updated_at = excluded.updated_at
-      `,
-    )
-    .run({
+  db.insert(userProfile)
+    .values({
       id: profile.id,
       displayName: profile.displayName,
-      now,
-    });
+      settingsJson: '{}',
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: userProfile.id,
+      set: {
+        displayName: profile.displayName,
+        updatedAt: now,
+      },
+    })
+    .run();
 };
 
 export const ensureManualUploadSource = (
-  db: DeductionsDrizzleDatabase,
+  db: DeductionsDatabase,
   now = Date.now(),
 ) => {
-  const existing = db.$client
-    .prepare('select id from sources where kind = ? order by created_at limit 1')
-    .get(defaultSourceKind) as { id: string } | undefined;
+  const existing = db
+    .select({ id: sources.id })
+    .from(sources)
+    .where(eq(sources.kind, defaultSourceKind))
+    .orderBy(sources.createdAt)
+    .limit(1)
+    .get();
 
   if (existing) {
     return existing.id;
@@ -72,22 +67,17 @@ export const ensureManualUploadSource = (
 
   const id = randomUUID();
 
-  db.$client
-    .prepare(
-      `
-        insert into sources (
-          id,
-          kind,
-          label,
-          status,
-          settings_json,
-          created_at,
-          updated_at
-        )
-        values (?, ?, 'Manual upload', 'active', '{}', ?, ?)
-      `,
-    )
-    .run(id, defaultSourceKind, now, now);
+  db.insert(sources)
+    .values({
+      id,
+      kind: defaultSourceKind,
+      label: 'Manual upload',
+      status: 'active',
+      settingsJson: '{}',
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
 
   return id;
 };
@@ -209,96 +199,21 @@ const developmentItems: SeedInvoiceItem[] = [
 const shaForId = (id: string) => id.replaceAll('-', '').padEnd(64, '0').slice(0, 64);
 
 export const seedDevelopmentData = (
-  db: DeductionsDrizzleDatabase,
+  db: DeductionsDatabase,
   sourceId: string,
   now = Date.now(),
 ) => {
-  const existing = db.$client
-    .prepare('select count(*) as count from invoice_items')
-    .get() as { count: number };
+  const existing = db
+    .select({ id: invoiceItems.id })
+    .from(invoiceItems)
+    .limit(1)
+    .get();
 
-  if (existing.count > 0) {
+  if (existing) {
     return;
   }
 
-  const insertDocument = db.$client.prepare(`
-    insert into documents (
-      id,
-      source_id,
-      original_file_name,
-      storage_path,
-      mime_type,
-      sha256,
-      imported_at,
-      created_at,
-      updated_at
-    )
-    values (
-      @id,
-      @sourceId,
-      @originalFileName,
-      @storagePath,
-      'application/pdf',
-      @sha256,
-      @timestamp,
-      @timestamp,
-      @timestamp
-    )
-  `);
-  const insertInvoice = db.$client.prepare(`
-    insert into invoices (
-      id,
-      document_id,
-      vendor,
-      invoice_date,
-      invoice_number,
-      created_at,
-      updated_at
-    )
-    values (
-      @id,
-      @documentId,
-      @vendor,
-      @invoiceDate,
-      @invoiceNumber,
-      @timestamp,
-      @timestamp
-    )
-  `);
-  const insertItem = db.$client.prepare(`
-    insert into invoice_items (
-      id,
-      invoice_id,
-      description,
-      amount_cents,
-      currency,
-      tax_year,
-      category_id,
-      review_status,
-      deduction_reason,
-      note,
-      sort_order,
-      created_at,
-      updated_at
-    )
-    values (
-      @id,
-      @invoiceId,
-      @description,
-      @amountCents,
-      'EUR',
-      @taxYear,
-      @categoryId,
-      @reviewStatus,
-      @deductionReason,
-      @note,
-      0,
-      @timestamp,
-      @timestamp
-    )
-  `);
-
-  const transaction = db.$client.transaction(() => {
+  db.transaction((tx) => {
     developmentItems.forEach((item) => {
       const timestamp = now - item.updatedOffset * 1000;
       const documentId = item.hasDocument ? randomUUID() : null;
@@ -306,39 +221,44 @@ export const seedDevelopmentData = (
       const invoiceItemId = randomUUID();
 
       if (documentId) {
-        insertDocument.run({
+        tx.insert(documents).values({
           id: documentId,
           sourceId,
-          originalFileName: item.originalFileName,
+          originalFileName: item.originalFileName ?? '',
           storagePath: `documents/${item.taxYear}/${documentId}.pdf`,
+          mimeType: 'application/pdf',
           sha256: shaForId(documentId),
-          timestamp,
-        });
+          importedAt: timestamp,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }).run();
       }
 
-      insertInvoice.run({
+      tx.insert(invoices).values({
         id: invoiceId,
         documentId,
         vendor: item.vendor,
         invoiceDate: item.invoiceDate,
         invoiceNumber: item.invoiceNumber ?? null,
-        timestamp,
-      });
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }).run();
 
-      insertItem.run({
+      tx.insert(invoiceItems).values({
         id: invoiceItemId,
         invoiceId,
         description: item.description,
         amountCents: item.amountCents,
+        currency: 'EUR',
         taxYear: item.taxYear,
         categoryId: item.categoryId,
         reviewStatus: item.reviewStatus,
         deductionReason: item.deductionReason,
         note: item.note ?? null,
-        timestamp,
-      });
+        sortOrder: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }).run();
     });
   });
-
-  transaction();
 };
