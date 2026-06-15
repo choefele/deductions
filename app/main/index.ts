@@ -6,11 +6,26 @@ import {
   initializeDeductionsDatabase,
   type DeductionsDatabaseHandle,
 } from './data/database';
+import { importDocuments } from './data/importDocuments';
+import type { ImportFiles } from './ipc';
 import { registerDeductionsIpcHandlers } from './ipc';
 import { buildMenu } from './menu';
 
 let databaseHandle: DeductionsDatabaseHandle | null = null;
 let isDataInitialized = false;
+
+const importFiles: ImportFiles = (filePaths) => {
+  if (!databaseHandle) {
+    throw new Error('Deductions data is not initialized');
+  }
+
+  return importDocuments({
+    db: databaseHandle.db,
+    profileDirectory: databaseHandle.profileDirectory,
+    sourceId: databaseHandle.manualUploadSourceId,
+    filePaths,
+  });
+};
 
 // Avoid macOS Keychain prompts from Chromium safe storage while Forge runs the
 // stock Electron binary in development. Packaged builds use configured fuses.
@@ -29,9 +44,9 @@ app.whenReady()
     databaseHandle = initializeDeductionsDatabase({
       appDataDirectory: app.getPath('userData'),
     });
-    registerDeductionsIpcHandlers(databaseHandle.data);
+    registerDeductionsIpcHandlers(databaseHandle.data, importFiles);
     isDataInitialized = true;
-    buildMenu();
+    buildMenu(importFiles);
     createWindow();
   })
   .catch((error: unknown) => {

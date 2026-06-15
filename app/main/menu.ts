@@ -1,8 +1,9 @@
 import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
-import { openFiles } from './dialogs';
+import { selectImportFiles } from './dialogs';
+import type { ImportFiles } from './ipc';
 
-export const buildMenu = () => {
+export const buildMenu = (importFiles?: ImportFiles) => {
   const isMac = process.platform === 'darwin';
   const template: MenuItemConstructorOptions[] = [];
 
@@ -28,10 +29,20 @@ export const buildMenu = () => {
       label: 'File',
       submenu: [
         {
-          label: 'Open Files...',
+          label: 'Import Files...',
           accelerator: 'CmdOrCtrl+O',
           click: async () => {
-            await openFiles(BrowserWindow.getFocusedWindow() ?? undefined);
+            const selection = await selectImportFiles(
+              BrowserWindow.getFocusedWindow() ?? undefined,
+            );
+
+            if (
+              !selection.canceled &&
+              selection.filePaths.length > 0 &&
+              importFiles
+            ) {
+              await importFiles(selection.filePaths);
+            }
           },
         },
         { type: 'separator' },

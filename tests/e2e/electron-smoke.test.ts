@@ -59,7 +59,9 @@ test('opens the Deductions shell and exposes the preload API', async () => {
 
     const apiShape = await page.evaluate(() => ({
       hasDeductionsApi: typeof window.deductions === 'object',
-      hasOpenFiles: typeof window.deductions.openFiles === 'function',
+      hasImportsApi: typeof window.deductions.imports === 'object',
+      hasImportFiles:
+        typeof window.deductions.imports.importFiles === 'function',
       hasDataApi: typeof window.deductions.data === 'object',
       hasListTaxYears:
         typeof window.deductions.data.listTaxYears === 'function',
@@ -73,7 +75,8 @@ test('opens the Deductions shell and exposes the preload API', async () => {
 
     expect(apiShape).toMatchObject({
       hasDeductionsApi: true,
-      hasOpenFiles: true,
+      hasImportsApi: true,
+      hasImportFiles: true,
       hasDataApi: true,
       hasListTaxYears: true,
       hasNodeRequire: false,

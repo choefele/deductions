@@ -1,4 +1,4 @@
-import type { ReviewStatus } from '../../shared/deductions';
+import type { ReviewStatus } from '../../shared/data';
 import { Badge } from './ui/badge';
 
 export const StatusBadge = ({ status }: { status: ReviewStatus }) => {

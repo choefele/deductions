@@ -16,5 +16,5 @@ export type {
   TaxCategory,
   TaxCategoryId,
   TaxYearSummary,
-} from '../../shared/deductions';
-export { taxCategories } from '../../shared/deductions';
+} from '../../shared/data';
+export { taxCategories } from '../../shared/data';

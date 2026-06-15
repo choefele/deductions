@@ -6,7 +6,7 @@ import {
   reviewStatuses,
   sourceKinds,
   taxCategoryIds,
-} from '../../shared/deductions';
+} from '../../shared/data';
 
 export const userProfile = sqliteTable('user_profile', {
   id: text('id').primaryKey(),

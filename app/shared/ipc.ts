@@ -1,7 +1,10 @@
-import type { DeductionsDataApi } from './deductions';
+import type { DeductionsDataApi } from './data';
+import type { DeductionsImportsApi } from './imports';
 
 export const ipcChannels = {
-  openFiles: 'deductions:dialog:open-files',
+  imports: {
+    importFiles: 'deductions:imports:import-files',
+  },
   data: {
     listCategories: 'deductions:data:list-categories',
     getAllYearsSummary: 'deductions:data:get-all-years-summary',
@@ -16,16 +19,11 @@ export const ipcChannels = {
   },
 } as const;
 
-export type OpenFilesResult = {
-  canceled: boolean;
-  filePaths: string[];
-};
-
 export type DeductionsBridgeApi = {
   appInfo: {
     platform: NodeJS.Platform;
     version: string;
   };
-  openFiles: () => Promise<OpenFilesResult>;
+  imports: DeductionsImportsApi;
   data: DeductionsDataApi;
 };

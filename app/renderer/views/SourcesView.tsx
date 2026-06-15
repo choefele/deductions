@@ -1,7 +1,7 @@
 import { useLoaderData } from 'react-router';
 import { Server } from 'lucide-react';
 
-import type { SourceSummary } from '../../shared/deductions';
+import type { SourceSummary } from '../../shared/data';
 import {
   Card,
   CardContent,

@@ -4,8 +4,8 @@ import { eq } from 'drizzle-orm';
 import type {
   ReviewStatus,
   TaxCategoryId,
-} from '../../shared/deductions';
-import { defaultSourceKind } from '../../shared/deductions';
+} from '../../shared/data';
+import { defaultSourceKind } from '../../shared/data';
 import type { ProfileRegistryEntry } from './profileRegistry';
 import { documents, invoiceItems, invoices, sources, userProfile } from './schema';
 import type { DeductionsDatabase } from './types';

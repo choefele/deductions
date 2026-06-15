@@ -8,7 +8,7 @@ import {
   reviewQueuePath,
   taxYearPath,
 } from '../../../app/renderer/navigation';
-import type { TaxYearSummary } from '../../../app/shared/deductions';
+import type { TaxYearSummary } from '../../../app/shared/data';
 
 describe('navigation helpers', () => {
   it('generates stable app paths', () => {

@@ -1,7 +1,7 @@
 import { Link, useLoaderData } from 'react-router';
 import { ArrowRight, Download } from 'lucide-react';
 
-import type { TaxYearSummary } from '../../shared/deductions';
+import type { TaxYearSummary } from '../../shared/data';
 import { categoryPath, reviewQueuePath } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

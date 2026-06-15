@@ -1,14 +1,15 @@
 import { BrowserWindow, ipcMain } from 'electron';
 
 import {
+  type DeductionsDataApi,
   reviewStatuses,
   taxCategoryIds,
-  type DeductionsDataApi,
   type ReviewStatus,
   type TaxCategoryId,
-} from '../shared/deductions';
+} from '../shared/data';
+import type { ImportFilesResult } from '../shared/imports';
 import { ipcChannels } from '../shared/ipc';
-import { openFiles } from './dialogs';
+import { selectImportFiles } from './dialogs';
 
 const minimumTaxYear = 1900;
 const maximumTaxYear = 2200;
@@ -74,11 +75,37 @@ const readNonEmptyString = (channel: string, value: unknown, label: string) => {
   return value;
 };
 
-export const registerDeductionsIpcHandlers = (data: DeductionsDataApi) => {
-  ipcMain.handle(ipcChannels.openFiles, (event, ...args) => {
-    assertNoArguments(ipcChannels.openFiles, args);
+export type ImportFiles = (
+  filePaths: string[],
+) => Promise<Pick<ImportFilesResult, 'accepted' | 'skipped' | 'failed'>>;
 
-    return openFiles(BrowserWindow.fromWebContents(event.sender) ?? undefined);
+export const mergeImportResult = (
+  selection: ImportFilesResult,
+  importResult: Pick<ImportFilesResult, 'accepted' | 'skipped' | 'failed'>,
+): ImportFilesResult => ({
+  ...selection,
+  ...importResult,
+});
+
+export const registerDeductionsIpcHandlers = (
+  data: DeductionsDataApi,
+  importFiles?: ImportFiles,
+) => {
+  ipcMain.handle(ipcChannels.imports.importFiles, async (event, ...args) => {
+    assertNoArguments(ipcChannels.imports.importFiles, args);
+
+    const selection = await selectImportFiles(
+      BrowserWindow.fromWebContents(event.sender) ?? undefined,
+    );
+
+    if (selection.canceled || selection.filePaths.length === 0 || !importFiles) {
+      return selection;
+    }
+
+    return mergeImportResult(
+      selection,
+      await importFiles(selection.filePaths),
+    );
   });
 
   ipcMain.handle(ipcChannels.data.listCategories, (_event, ...args) => {

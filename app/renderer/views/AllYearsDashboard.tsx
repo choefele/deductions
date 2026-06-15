@@ -1,7 +1,7 @@
 import { Link, useLoaderData } from 'react-router';
 import { ArrowRight, CheckCircle2, Inbox, XCircle } from 'lucide-react';
 
-import type { AllYearsSummary } from '../../shared/deductions';
+import type { AllYearsSummary } from '../../shared/data';
 import { reviewQueuePath, taxYearPath } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import {

@@ -3,7 +3,7 @@ import { useLoaderData } from 'react-router';
 import type {
   InvoiceItemSummary,
   TaxCategoryId,
-} from '../../shared/deductions';
+} from '../../shared/data';
 import { categoryLabel } from '@/navigation';
 import { InvoiceTable } from '@/components/InvoiceTable';
 

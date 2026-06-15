@@ -15,8 +15,8 @@ import type {
   TaxCategory,
   TaxCategoryId,
   TaxYearSummary,
-} from '../../shared/deductions';
-import { taxCategories } from '../../shared/deductions';
+} from '../../shared/data';
+import { taxCategories } from '../../shared/data';
 import { documents, invoiceItems, invoices, sources } from './schema';
 import type { DeductionsDatabase } from './types';
 

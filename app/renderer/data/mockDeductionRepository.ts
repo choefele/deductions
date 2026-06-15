@@ -8,8 +8,8 @@ import type {
   TaxCategory,
   TaxCategoryId,
   TaxYearSummary,
-} from '../../shared/deductions';
-import { taxCategories } from '../../shared/deductions';
+} from '../../shared/data';
+import { taxCategories } from '../../shared/data';
 
 const manualSourceId = 'mock-manual-upload-source';
 

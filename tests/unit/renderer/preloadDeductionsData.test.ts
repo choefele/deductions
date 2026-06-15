@@ -8,7 +8,9 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     platform: 'darwin',
     version: '42.0.0',
   },
-  openFiles: vi.fn(),
+  imports: {
+    importFiles: vi.fn(),
+  },
   data: {
     listCategories: vi.fn().mockResolvedValue([]),
     getAllYearsSummary: vi.fn().mockResolvedValue({

@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { reviewStatuses, taxCategoryIds } from '../shared/deductions';
-import type { ReviewStatus, TaxCategoryId } from '../shared/deductions';
+import { reviewStatuses, taxCategoryIds } from '../shared/data';
+import type { ReviewStatus, TaxCategoryId } from '../shared/data';
 import { deductionsData } from './data/repository';
 
 const readYearParam = (params: LoaderFunctionArgs['params']) => {

@@ -7,7 +7,10 @@ const deductionsBridge: DeductionsBridgeApi = {
     platform: process.platform,
     version: process.versions.electron,
   },
-  openFiles: () => ipcRenderer.invoke(ipcChannels.openFiles),
+  imports: {
+    importFiles: () =>
+      ipcRenderer.invoke(ipcChannels.imports.importFiles),
+  },
   data: {
     listCategories: () =>
       ipcRenderer.invoke(ipcChannels.data.listCategories),

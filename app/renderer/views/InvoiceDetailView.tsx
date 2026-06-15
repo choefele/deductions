@@ -1,6 +1,6 @@
 import { Link, useLoaderData } from 'react-router';
 
-import type { InvoiceItemDetail } from '../../shared/deductions';
+import type { InvoiceItemDetail } from '../../shared/data';
 import { categoryPath, categoryLabel } from '@/navigation';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Badge } from '@/components/ui/badge';

@@ -27,7 +27,7 @@ export const MainHeader = () => {
     setIsImporting(true);
 
     try {
-      const result = await window.deductions.openFiles();
+      const result = await window.deductions.imports.importFiles();
       navigate('/import-result', { state: result });
     } finally {
       setIsImporting(false);

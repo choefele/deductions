@@ -3,8 +3,8 @@ import type {
   ReviewStatus,
   TaxCategoryId,
   TaxYearSummary,
-} from '../shared/deductions';
-import { taxCategories } from '../shared/deductions';
+} from '../shared/data';
+import { taxCategories } from '../shared/data';
 
 export type ReviewQueueId = ReviewStatus;
 

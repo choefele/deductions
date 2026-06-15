@@ -1,10 +1,10 @@
 import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron';
 
-import type { OpenFilesResult } from '../shared/ipc';
+import type { ImportFilesResult } from '../shared/imports';
 
-export const openFiles = async (
+export const selectImportFiles = async (
   browserWindow?: BrowserWindow,
-): Promise<OpenFilesResult> => {
+): Promise<ImportFilesResult> => {
   const options: OpenDialogOptions = {
     title: 'Choose invoices',
     properties: ['openFile', 'multiSelections'],
@@ -17,5 +17,8 @@ export const openFiles = async (
   return {
     canceled: result.canceled,
     filePaths: result.filePaths,
+    accepted: [],
+    skipped: [],
+    failed: [],
   };
 };

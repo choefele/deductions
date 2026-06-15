@@ -27,6 +27,7 @@ export type DeductionsDatabaseHandle = {
   activeProfile: ProfileRegistryEntry;
   profileDirectory: string;
   databasePath: string;
+  manualUploadSourceId: string;
   sqlite: DeductionsSqliteClient;
   db: DeductionsDatabase;
   data: SqliteDeductionsData;
@@ -79,6 +80,7 @@ export const initializeDeductionsDatabase = ({
     activeProfile,
     profileDirectory,
     databasePath,
+    manualUploadSourceId,
     sqlite,
     db,
     data: new SqliteDeductionsData(db),

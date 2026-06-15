@@ -14,3 +14,6 @@ export const getTaxYearDocumentDirectory = (
   profileDirectory: string,
   taxYear: number,
 ) => join(getDocumentsDirectory(profileDirectory), String(taxYear));
+
+export const getUnassignedDocumentDirectory = (profileDirectory: string) =>
+  join(getDocumentsDirectory(profileDirectory), 'unassigned');

@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 
-import type { InvoiceItemSummary } from '../../shared/deductions';
+import type { InvoiceItemSummary } from '../../shared/data';
 import { categoryLabel, invoicePath } from '@/navigation';
 import { StatusBadge } from './StatusBadge';
 import {

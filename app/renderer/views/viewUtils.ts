@@ -1,4 +1,4 @@
-import type { CountSummary } from '../../shared/deductions';
+import type { CountSummary } from '../../shared/data';
 
 export const formatCurrency = (amount: number, currency = 'EUR') =>
   new Intl.NumberFormat('de-DE', {

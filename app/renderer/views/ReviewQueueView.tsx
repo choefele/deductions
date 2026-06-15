@@ -1,6 +1,6 @@
 import { useLoaderData } from 'react-router';
 
-import type { InvoiceItemSummary } from '../../shared/deductions';
+import type { InvoiceItemSummary } from '../../shared/data';
 import { reviewQueueLabels, type ReviewQueueId } from '@/navigation';
 import { InvoiceTable } from '@/components/InvoiceTable';
 

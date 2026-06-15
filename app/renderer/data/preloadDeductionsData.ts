@@ -1,4 +1,4 @@
-import type { DeductionsDataApi } from '../../shared/deductions';
+import type { DeductionsDataApi } from '../../shared/data';
 
 export const preloadDeductionsData: DeductionsDataApi = {
   listCategories: () => window.deductions.data.listCategories(),

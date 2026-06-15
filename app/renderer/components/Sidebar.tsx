@@ -8,7 +8,7 @@ import {
   Server,
 } from "lucide-react";
 
-import type { SourceSummary, TaxYearSummary } from "../../shared/deductions";
+import type { SourceSummary, TaxYearSummary } from "../../shared/data";
 import { categoryPath, reviewQueuePath, taxYearPath } from "@/navigation";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
