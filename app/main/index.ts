@@ -7,23 +7,70 @@ import {
   type DeductionsDatabaseHandle,
 } from './data/database';
 import { importDocuments } from './data/importDocuments';
-import type { ImportFiles } from './ipc';
+import type { ImportFiles, ProcessDocument } from './ipc';
 import { registerDeductionsIpcHandlers } from './ipc';
 import { buildMenu } from './menu';
+import { ipcChannels } from '../shared/ipc';
+import { AiSdkInvoiceParser } from './processing/aiSdkInvoiceParser';
+import { resolveAiProviderSettings } from './processing/aiProviderSettings';
+import { DocumentProcessingQueue } from './processing/documentProcessingQueue';
+import { PdfJsDocumentTextExtractor } from './processing/pdfTextExtractor';
 
 let databaseHandle: DeductionsDatabaseHandle | null = null;
+let processingQueue: DocumentProcessingQueue | null = null;
 let isDataInitialized = false;
 
-const importFiles: ImportFiles = (filePaths) => {
+const broadcastDocumentsChanged = () => {
+  BrowserWindow.getAllWindows().forEach((window) => {
+    window.webContents.send(ipcChannels.processing.documentsChanged);
+  });
+};
+
+const importFiles: ImportFiles = async (filePaths) => {
   if (!databaseHandle) {
     throw new Error('Deductions data is not initialized');
   }
 
-  return importDocuments({
+  const result = await importDocuments({
     db: databaseHandle.db,
     profileDirectory: databaseHandle.profileDirectory,
     sourceId: databaseHandle.manualUploadSourceId,
     filePaths,
+  });
+
+  result.accepted.forEach((accepted) => {
+    processingQueue?.enqueue(accepted.documentId);
+  });
+
+  return result;
+};
+
+const processDocument: ProcessDocument = async (documentId) => {
+  if (!processingQueue) {
+    throw new Error('Document processing is not configured.');
+  }
+
+  return {
+    documentId,
+    enqueued: processingQueue.enqueue(documentId),
+  };
+};
+
+const createProcessingQueue = (
+  handle: DeductionsDatabaseHandle,
+): DocumentProcessingQueue | null => {
+  const settings = resolveAiProviderSettings();
+
+  if (!settings) {
+    return null;
+  }
+
+  return new DocumentProcessingQueue({
+    db: handle.db,
+    profileDirectory: handle.profileDirectory,
+    extractor: new PdfJsDocumentTextExtractor(),
+    parser: new AiSdkInvoiceParser(settings),
+    onDocumentsChanged: broadcastDocumentsChanged,
   });
 };
 
@@ -44,7 +91,13 @@ app.whenReady()
     databaseHandle = initializeDeductionsDatabase({
       appDataDirectory: app.getPath('userData'),
     });
-    registerDeductionsIpcHandlers(databaseHandle.data, importFiles);
+    processingQueue = createProcessingQueue(databaseHandle);
+    processingQueue?.recoverInterruptedDocuments();
+    registerDeductionsIpcHandlers(
+      databaseHandle.data,
+      importFiles,
+      processDocument,
+    );
     isDataInitialized = true;
     buildMenu(importFiles);
     createWindow();
@@ -57,6 +110,7 @@ app.whenReady()
 app.on('before-quit', () => {
   databaseHandle?.close();
   databaseHandle = null;
+  processingQueue = null;
   isDataInitialized = false;
 });
 

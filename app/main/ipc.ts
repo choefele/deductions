@@ -9,6 +9,7 @@ import {
 } from '../shared/data';
 import type { ImportFilesResult } from '../shared/imports';
 import { ipcChannels } from '../shared/ipc';
+import type { ProcessDocumentResult } from '../shared/processing';
 import { selectImportFiles } from './dialogs';
 
 const minimumTaxYear = 1900;
@@ -90,6 +91,10 @@ export type ImportFiles = (
   filePaths: string[],
 ) => Promise<Pick<ImportFilesResult, 'accepted' | 'skipped' | 'failed'>>;
 
+export type ProcessDocument = (
+  documentId: string,
+) => Promise<ProcessDocumentResult>;
+
 export const mergeImportResult = (
   selection: ImportFilesResult,
   importResult: Pick<ImportFilesResult, 'accepted' | 'skipped' | 'failed'>,
@@ -120,6 +125,7 @@ export const importSelectedFilePaths = async (
 export const registerDeductionsIpcHandlers = (
   data: DeductionsDataApi,
   importFiles?: ImportFiles,
+  processDocument?: ProcessDocument,
 ) => {
   ipcMain.handle(ipcChannels.imports.importFiles, async (event, ...args) => {
     assertNoArguments(ipcChannels.imports.importFiles, args);
@@ -248,5 +254,21 @@ export const registerDeductionsIpcHandlers = (
     assertNoArguments(ipcChannels.data.listSources, args);
 
     return data.listSources();
+  });
+
+  ipcMain.handle(ipcChannels.processing.processDocument, (_event, ...args) => {
+    assertOneArgument(ipcChannels.processing.processDocument, args);
+
+    if (!processDocument) {
+      throw new Error('Document processing is not configured.');
+    }
+
+    return processDocument(
+      readNonEmptyString(
+        ipcChannels.processing.processDocument,
+        args[0],
+        'document id',
+      ),
+    );
   });
 };

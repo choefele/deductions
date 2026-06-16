@@ -46,6 +46,10 @@ export const documents = sqliteTable(
     status: text('status', { enum: documentStatuses })
       .notNull()
       .default('imported'),
+    processingStartedAt: integer('processing_started_at'),
+    processingCompletedAt: integer('processing_completed_at'),
+    processingError: text('processing_error'),
+    processorVersion: text('processor_version'),
     importedAt: integer('imported_at').notNull(),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),

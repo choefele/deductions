@@ -84,6 +84,10 @@ type DocumentRow = {
   mimeType: string;
   sha256: string;
   status: DocumentStatus;
+  processingStartedAt: number | null;
+  processingCompletedAt: number | null;
+  processingError: string | null;
+  processorVersion: string | null;
   importedAt: number;
 };
 
@@ -331,6 +335,10 @@ export class SqliteDeductionsData implements DeductionsDataApi {
         mimeType: documents.mimeType,
         sha256: documents.sha256,
         status: documents.status,
+        processingStartedAt: documents.processingStartedAt,
+        processingCompletedAt: documents.processingCompletedAt,
+        processingError: documents.processingError,
+        processorVersion: documents.processorVersion,
         importedAt: documents.importedAt,
       })
       .from(documents)
@@ -353,6 +361,10 @@ export class SqliteDeductionsData implements DeductionsDataApi {
         mimeType: documents.mimeType,
         sha256: documents.sha256,
         status: documents.status,
+        processingStartedAt: documents.processingStartedAt,
+        processingCompletedAt: documents.processingCompletedAt,
+        processingError: documents.processingError,
+        processorVersion: documents.processorVersion,
         importedAt: documents.importedAt,
       })
       .from(documents)
@@ -506,6 +518,14 @@ export class SqliteDeductionsData implements DeductionsDataApi {
       sourceLabel: row.sourceLabel,
       sourceKind: row.sourceKind,
       status: row.status,
+      processingStartedAt: row.processingStartedAt
+        ? new Date(row.processingStartedAt).toISOString()
+        : undefined,
+      processingCompletedAt: row.processingCompletedAt
+        ? new Date(row.processingCompletedAt).toISOString()
+        : undefined,
+      processorVersion: row.processorVersion ?? undefined,
+      latestError: row.processingError ?? undefined,
       invoiceCount,
       invoiceItemCount,
       pendingItemCount,

@@ -92,6 +92,22 @@ describe('database migrations', () => {
           notnull: 1,
           dflt_value: "'imported'",
         }),
+        expect.objectContaining({
+          name: 'processing_started_at',
+          notnull: 0,
+        }),
+        expect.objectContaining({
+          name: 'processing_completed_at',
+          notnull: 0,
+        }),
+        expect.objectContaining({
+          name: 'processing_error',
+          notnull: 0,
+        }),
+        expect.objectContaining({
+          name: 'processor_version',
+          notnull: 0,
+        }),
       ]),
     );
   });
@@ -118,7 +134,7 @@ describe('database migrations', () => {
         applied_at: string | null;
       }>;
 
-    expect(migrations).toHaveLength(2);
+    expect(migrations).toHaveLength(3);
     expect(migrations).toEqual([
       expect.objectContaining({
         id: 1,
@@ -129,6 +145,11 @@ describe('database migrations', () => {
         id: 2,
         created_at: 1781605200000,
         name: '20260616102000_add_document_status',
+      }),
+      expect.objectContaining({
+        id: 3,
+        created_at: 1781620200000,
+        name: '20260616143000_add_document_processing_metadata',
       }),
     ]);
     expect(migrations.every((migration) => migration.hash.length === 64)).toBe(

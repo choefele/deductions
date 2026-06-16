@@ -4,9 +4,17 @@ import {
   Link,
   useLoaderData,
   useLocation,
+  useRevalidator,
   useSearchParams,
 } from "react-router";
-import { AlertCircle, CheckCircle2, Clock3, FileText } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Play,
+  RotateCcw,
+} from "lucide-react";
 
 import type {
   DocumentDetail,
@@ -20,6 +28,11 @@ import { formatSelectionStatus } from "@/selectionStatus";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -165,7 +178,15 @@ const ImportOutcomeList = ({
   </div>
 );
 
-const DocumentDetailPanel = ({ detail }: { detail: DocumentDetail | null }) => {
+const DocumentDetailPanel = ({
+  detail,
+  isProcessingRequestPending,
+  onProcess,
+}: {
+  detail: DocumentDetail | null;
+  isProcessingRequestPending: boolean;
+  onProcess: (documentId: string) => void;
+}) => {
   if (!detail) {
     return (
       <aside className="rounded-md border p-4 text-sm text-muted-foreground">
@@ -179,20 +200,44 @@ const DocumentDetailPanel = ({ detail }: { detail: DocumentDetail | null }) => {
   return (
     <aside className="space-y-5 rounded-md border p-4">
       <div className="space-y-1">
-        <h2 className="wrap-break-word text-base font-semibold">
-          {detail.originalFileName}
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="wrap-break-word text-base font-semibold">
+            {detail.originalFileName}
+          </h2>
+          <DocumentProcessingAction
+            document={detail}
+            disabled={isProcessingRequestPending}
+            onProcess={onProcess}
+          />
+        </div>
         <p className="text-sm text-muted-foreground">{detail.storagePath}</p>
       </div>
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <DetailValue label="Source" value={detail.sourceLabel} />
+        <DetailValue label="Status" value={statusLabel[detail.status]} />
         <DetailValue
           label="Imported"
           value={formatDateTime(detail.importedAt)}
         />
-        <DetailValue label="MIME type" value={detail.mimeType} />
+        <DetailValue
+          label="Completed"
+          value={
+            detail.processingCompletedAt
+              ? formatDateTime(detail.processingCompletedAt)
+              : "None"
+          }
+        />
+        <DetailValue
+          label="Processor"
+          value={detail.processorVersion ?? "None"}
+        />
         <DetailValue label="SHA-256" value={detail.sha256} wide />
       </dl>
+      {detail.latestError ? (
+        <p className="wrap-break-word rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          {detail.latestError}
+        </p>
+      ) : null}
       {detail.taxYears.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {detail.taxYears.map((taxYear) => (
@@ -223,6 +268,45 @@ const DocumentDetailPanel = ({ detail }: { detail: DocumentDetail | null }) => {
         )}
       </div>
     </aside>
+  );
+};
+
+const DocumentProcessingAction = ({
+  document,
+  disabled,
+  onProcess,
+}: {
+  document: DocumentListSummary;
+  disabled: boolean;
+  onProcess: (documentId: string) => void;
+}) => {
+  const canProcess =
+    document.status === "imported" || document.status === "needs_review";
+
+  if (!canProcess) {
+    return null;
+  }
+
+  const isRetry = document.status === "needs_review";
+  const Icon = isRetry ? RotateCcw : Play;
+  const label = isRetry ? "Retry processing" : "Process now";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          disabled={disabled}
+          aria-label={label}
+          onClick={() => onProcess(document.id)}
+        >
+          <Icon className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 };
 
@@ -275,9 +359,13 @@ export const DocumentsView = () => {
     [latestImport],
   );
   const [searchParams, setSearchParams] = useSearchParams();
+  const revalidator = useRevalidator();
   const selectedDocumentId =
     searchParams.get("document") ?? documents[0]?.id ?? null;
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!routeLatestImport) {
@@ -312,7 +400,18 @@ export const DocumentsView = () => {
     return () => {
       isActive = false;
     };
-  }, [selectedDocumentId]);
+  }, [selectedDocumentId, documents]);
+
+  const handleProcessDocument = async (documentId: string) => {
+    setProcessingRequestId(documentId);
+
+    try {
+      await window.deductions.processing.processDocument(documentId);
+      revalidator.revalidate();
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
 
   const documentCount = documents.length;
 
@@ -409,7 +508,11 @@ export const DocumentsView = () => {
           </Table>
         </section>
         <div className="min-w-0">
-          <DocumentDetailPanel detail={detail} />
+          <DocumentDetailPanel
+            detail={detail}
+            isProcessingRequestPending={processingRequestId === detail?.id}
+            onProcess={handleProcessDocument}
+          />
         </div>
       </div>
     </main>

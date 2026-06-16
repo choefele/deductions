@@ -59,6 +59,24 @@ const deductionsBridge: DeductionsBridgeApi = {
       ipcRenderer.invoke(ipcChannels.data.getDocumentDetail, documentId),
     listSources: () => ipcRenderer.invoke(ipcChannels.data.listSources),
   },
+  processing: {
+    processDocument: (documentId) =>
+      ipcRenderer.invoke(ipcChannels.processing.processDocument, documentId),
+    onDocumentsChanged: (listener) => {
+      const handler = () => {
+        listener();
+      };
+
+      ipcRenderer.on(ipcChannels.processing.documentsChanged, handler);
+
+      return () => {
+        ipcRenderer.removeListener(
+          ipcChannels.processing.documentsChanged,
+          handler,
+        );
+      };
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('deductions', deductionsBridge);

@@ -49,6 +49,11 @@ export const AppShell = () => {
     [showImportResult],
   );
 
+  useEffect(
+    () => window.deductions.processing.onDocumentsChanged(revalidator.revalidate),
+    [revalidator.revalidate],
+  );
+
   const handleDragEnter = (event: DragEvent) => {
     if (!hasDraggedFiles(event)) {
       return;

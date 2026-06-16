@@ -31,6 +31,10 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     getDocumentDetail: vi.fn().mockResolvedValue(null),
     listSources: vi.fn().mockResolvedValue([]),
   },
+  processing: {
+    processDocument: vi.fn(),
+    onDocumentsChanged: vi.fn(),
+  },
 });
 
 describe('preloadDeductionsData', () => {

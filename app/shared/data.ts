@@ -75,6 +75,9 @@ export type DocumentListSummary = DocumentSummary & {
   sourceLabel: string;
   sourceKind: SourceKind;
   status: DocumentStatus;
+  processingStartedAt?: string;
+  processingCompletedAt?: string;
+  processorVersion?: string;
   invoiceCount: number;
   invoiceItemCount: number;
   pendingItemCount: number;
