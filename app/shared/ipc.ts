@@ -4,6 +4,8 @@ import type { DeductionsImportsApi } from './imports';
 export const ipcChannels = {
   imports: {
     importFiles: 'deductions:imports:import-files',
+    importFilePaths: 'deductions:imports:import-file-paths',
+    importCompleted: 'deductions:imports:import-completed',
   },
   data: {
     listCategories: 'deductions:data:list-categories',
@@ -15,6 +17,8 @@ export const ipcChannels = {
       'deductions:data:list-invoice-items-by-review-status',
     getInvoiceItemById: 'deductions:data:get-invoice-item-by-id',
     getInvoiceById: 'deductions:data:get-invoice-by-id',
+    listDocumentSummaries: 'deductions:data:list-document-summaries',
+    getDocumentDetail: 'deductions:data:get-document-detail',
     listSources: 'deductions:data:list-sources',
   },
 } as const;

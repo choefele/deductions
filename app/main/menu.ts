@@ -1,7 +1,8 @@
 import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
 import { selectImportFiles } from './dialogs';
-import type { ImportFiles } from './ipc';
+import { importSelectedFilePaths, mergeImportResult, type ImportFiles } from './ipc';
+import { ipcChannels } from '../shared/ipc';
 
 export const buildMenu = (importFiles?: ImportFiles) => {
   const isMac = process.platform === 'darwin';
@@ -32,17 +33,26 @@ export const buildMenu = (importFiles?: ImportFiles) => {
           label: 'Import Files...',
           accelerator: 'CmdOrCtrl+O',
           click: async () => {
+            const browserWindow =
+              BrowserWindow.getFocusedWindow() ??
+              BrowserWindow.getAllWindows()[0];
             const selection = await selectImportFiles(
-              BrowserWindow.getFocusedWindow() ?? undefined,
+              browserWindow ?? undefined,
             );
-
-            if (
+            const result =
               !selection.canceled &&
               selection.filePaths.length > 0 &&
               importFiles
-            ) {
-              await importFiles(selection.filePaths);
-            }
+                ? mergeImportResult(
+                    selection,
+                    await importFiles(selection.filePaths),
+                  )
+                : await importSelectedFilePaths(selection.filePaths, importFiles);
+
+            browserWindow?.webContents.send(
+              ipcChannels.imports.importCompleted,
+              selection.canceled ? selection : result,
+            );
           },
         },
         { type: 'separator' },

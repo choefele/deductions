@@ -30,6 +30,19 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     await expect(
       page.getByRole('button', { name: 'Import invoice' }),
     ).toBeVisible();
+    await sidebar.getByRole('link', { name: 'Documents' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Documents' }),
+    ).toBeVisible();
+    await expect(page.getByText('Latest import')).toBeVisible();
+    await expect(page.getByText('No import in this session.')).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Items' })).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: 'Tax year' }),
+    ).toBeVisible();
+    await expect(page.getByText('apple-store-2025-02-14.pdf')).toBeVisible();
+    await expect(page.getByText('Manual upload').first()).toBeVisible();
+    await sidebar.getByRole('link', { name: 'All years' }).click();
     await expect(sidebar.getByRole('link', { name: 'Overview' })).toHaveCount(1);
     await expect(sidebar.getByRole('button', { name: /2025/ })).toHaveAttribute(
       'aria-expanded',
@@ -88,9 +101,13 @@ test('opens the Deductions shell and exposes the preload API', async () => {
       hasImportsApi: typeof window.deductions.imports === 'object',
       hasImportFiles:
         typeof window.deductions.imports.importFiles === 'function',
+      hasImportFilePaths:
+        typeof window.deductions.imports.importFilePaths === 'function',
       hasDataApi: typeof window.deductions.data === 'object',
       hasListTaxYears:
         typeof window.deductions.data.listTaxYears === 'function',
+      hasListDocumentSummaries:
+        typeof window.deductions.data.listDocumentSummaries === 'function',
       platform: window.deductions.appInfo.platform,
       version: window.deductions.appInfo.version,
       hasNodeRequire: typeof Reflect.get(window, 'require') === 'function',
@@ -103,8 +120,10 @@ test('opens the Deductions shell and exposes the preload API', async () => {
       hasDeductionsApi: true,
       hasImportsApi: true,
       hasImportFiles: true,
+      hasImportFilePaths: true,
       hasDataApi: true,
       hasListTaxYears: true,
+      hasListDocumentSummaries: true,
       hasNodeRequire: false,
     });
     expect(apiShape.platform.length).toBeGreaterThan(0);

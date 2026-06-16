@@ -10,6 +10,9 @@ const createWindowApi = (): DeductionsBridgeApi => ({
   },
   imports: {
     importFiles: vi.fn(),
+    importFilePaths: vi.fn(),
+    getPathForFile: vi.fn(),
+    onImportCompleted: vi.fn(),
   },
   data: {
     listCategories: vi.fn().mockResolvedValue([]),
@@ -24,6 +27,8 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     listInvoiceItemsByReviewStatus: vi.fn().mockResolvedValue([]),
     getInvoiceItemById: vi.fn().mockResolvedValue(null),
     getInvoiceById: vi.fn().mockResolvedValue(null),
+    listDocumentSummaries: vi.fn().mockResolvedValue([]),
+    getDocumentDetail: vi.fn().mockResolvedValue(null),
     listSources: vi.fn().mockResolvedValue([]),
   },
 });
@@ -45,6 +50,8 @@ describe('preloadDeductionsData', () => {
     );
     await preloadDeductionsData.listInvoiceItemsByReviewStatus('pending');
     await preloadDeductionsData.getInvoiceItemById('item-1');
+    await preloadDeductionsData.listDocumentSummaries();
+    await preloadDeductionsData.getDocumentDetail('doc-1');
 
     expect(api.data.getTaxYearSummary).toHaveBeenCalledWith(2025);
     expect(api.data.listInvoiceItemsByCategory).toHaveBeenCalledWith(
@@ -55,5 +62,7 @@ describe('preloadDeductionsData', () => {
       'pending',
     );
     expect(api.data.getInvoiceItemById).toHaveBeenCalledWith('item-1');
+    expect(api.data.listDocumentSummaries).toHaveBeenCalledWith();
+    expect(api.data.getDocumentDetail).toHaveBeenCalledWith('doc-1');
   });
 });

@@ -14,5 +14,8 @@ export const preloadDeductionsData: DeductionsDataApi = {
     window.deductions.data.getInvoiceItemById(invoiceItemId),
   getInvoiceById: (invoiceId) =>
     window.deductions.data.getInvoiceById(invoiceId),
+  listDocumentSummaries: () => window.deductions.data.listDocumentSummaries(),
+  getDocumentDetail: (documentId) =>
+    window.deductions.data.getDocumentDetail(documentId),
   listSources: () => window.deductions.data.listSources(),
 };

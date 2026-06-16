@@ -3,7 +3,6 @@ import { Link, useLoaderData } from 'react-router';
 import type { InvoiceItemDetail } from '../../shared/data';
 import { categoryPath, categoryLabel } from '@/navigation';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,32 +18,17 @@ export const InvoiceDetailView = () => {
   const invoiceItem = useLoaderData() as InvoiceItemDetail;
 
   return (
-    <main className="grid min-h-[calc(100vh-3.5rem)] gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <section className="flex min-h-[32rem] flex-col rounded-lg border bg-muted/30">
-        <div className="flex items-center justify-between border-b p-4">
-          <div>
-            <h1 className="text-lg font-semibold">{invoiceItem.vendor}</h1>
-            <p className="text-sm text-muted-foreground">
-              {invoiceItem.document?.originalFileName ?? 'Source document'}
-            </p>
-          </div>
-          <Badge variant="outline">PDF preview later</Badge>
-        </div>
-        <div className="grid flex-1 place-items-center p-8 text-center">
-          <div>
-            <div className="mx-auto grid aspect-[3/4] w-72 place-items-center rounded-lg border bg-background shadow-sm">
-              <div>
-                <div className="text-sm font-medium">Invoice document</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Real PDF/image rendering is deferred.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <main className="max-w-3xl space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {invoiceItem.vendor}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {invoiceItem.document?.originalFileName ?? 'No source document'}
+        </p>
+      </div>
 
-      <aside className="space-y-4">
+      <section className="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>Review</CardTitle>
@@ -121,7 +105,7 @@ export const InvoiceDetailView = () => {
             </div>
           </CardContent>
         </Card>
-      </aside>
+      </section>
     </main>
   );
 };

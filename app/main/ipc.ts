@@ -75,6 +75,17 @@ const readNonEmptyString = (channel: string, value: unknown, label: string) => {
   return value;
 };
 
+const readFilePaths = (channel: string, value: unknown) => {
+  if (
+    !Array.isArray(value) ||
+    value.some((filePath) => typeof filePath !== 'string')
+  ) {
+    throw new Error(`${channel} received invalid file paths`);
+  }
+
+  return value.filter((filePath) => filePath.trim().length > 0);
+};
+
 export type ImportFiles = (
   filePaths: string[],
 ) => Promise<Pick<ImportFilesResult, 'accepted' | 'skipped' | 'failed'>>;
@@ -86,6 +97,25 @@ export const mergeImportResult = (
   ...selection,
   ...importResult,
 });
+
+export const importSelectedFilePaths = async (
+  filePaths: string[],
+  importFiles?: ImportFiles,
+): Promise<ImportFilesResult> => {
+  const selection: ImportFilesResult = {
+    canceled: false,
+    filePaths,
+    accepted: [],
+    skipped: [],
+    failed: [],
+  };
+
+  if (filePaths.length === 0 || !importFiles) {
+    return selection;
+  }
+
+  return mergeImportResult(selection, await importFiles(filePaths));
+};
 
 export const registerDeductionsIpcHandlers = (
   data: DeductionsDataApi,
@@ -105,6 +135,15 @@ export const registerDeductionsIpcHandlers = (
     return mergeImportResult(
       selection,
       await importFiles(selection.filePaths),
+    );
+  });
+
+  ipcMain.handle(ipcChannels.imports.importFilePaths, async (_event, ...args) => {
+    assertOneArgument(ipcChannels.imports.importFilePaths, args);
+
+    return importSelectedFilePaths(
+      readFilePaths(ipcChannels.imports.importFilePaths, args[0]),
+      importFiles,
     );
   });
 
@@ -183,6 +222,24 @@ export const registerDeductionsIpcHandlers = (
         ipcChannels.data.getInvoiceById,
         args[0],
         'invoice id',
+      ),
+    );
+  });
+
+  ipcMain.handle(ipcChannels.data.listDocumentSummaries, (_event, ...args) => {
+    assertNoArguments(ipcChannels.data.listDocumentSummaries, args);
+
+    return data.listDocumentSummaries();
+  });
+
+  ipcMain.handle(ipcChannels.data.getDocumentDetail, (_event, ...args) => {
+    assertOneArgument(ipcChannels.data.getDocumentDetail, args);
+
+    return data.getDocumentDetail(
+      readNonEmptyString(
+        ipcChannels.data.getDocumentDetail,
+        args[0],
+        'document id',
       ),
     );
   });

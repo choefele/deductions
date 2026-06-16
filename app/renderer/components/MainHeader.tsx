@@ -1,8 +1,13 @@
 import { useMemo, useState } from 'react';
-import { useLocation, useNavigate, useRouteLoaderData } from 'react-router';
+import {
+  useLocation,
+  useNavigate,
+  useRevalidator,
+  useRouteLoaderData,
+} from 'react-router';
 import { FileUp, Search } from 'lucide-react';
 
-import { getBreadcrumbs, getSelectionForPath } from '@/navigation';
+import { documentsPath, getBreadcrumbs, getSelectionForPath } from '@/navigation';
 import type { rootLoader } from '@/routeData';
 import { Breadcrumbs } from './Breadcrumbs';
 import { Button } from './ui/button';
@@ -15,6 +20,7 @@ type RootData = Awaited<ReturnType<typeof rootLoader>>;
 export const MainHeader = () => {
   const [isImporting, setIsImporting] = useState(false);
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
   const location = useLocation();
   const rootData = useRouteLoaderData('root') as RootData;
   const selection = useMemo(
@@ -28,7 +34,8 @@ export const MainHeader = () => {
 
     try {
       const result = await window.deductions.imports.importFiles();
-      navigate('/import-result', { state: result });
+      navigate(documentsPath(), { state: result });
+      revalidator.revalidate();
     } finally {
       setIsImporting(false);
     }

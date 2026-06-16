@@ -1,5 +1,6 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
+import type { ImportFilesResult } from '../shared/imports';
 import { ipcChannels, type DeductionsBridgeApi } from '../shared/ipc';
 
 const deductionsBridge: DeductionsBridgeApi = {
@@ -10,6 +11,23 @@ const deductionsBridge: DeductionsBridgeApi = {
   imports: {
     importFiles: () =>
       ipcRenderer.invoke(ipcChannels.imports.importFiles),
+    importFilePaths: (filePaths) =>
+      ipcRenderer.invoke(ipcChannels.imports.importFilePaths, filePaths),
+    getPathForFile: (file) => webUtils.getPathForFile(file),
+    onImportCompleted: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, result: unknown) => {
+        listener(result as ImportFilesResult);
+      };
+
+      ipcRenderer.on(ipcChannels.imports.importCompleted, handler);
+
+      return () => {
+        ipcRenderer.removeListener(
+          ipcChannels.imports.importCompleted,
+          handler,
+        );
+      };
+    },
   },
   data: {
     listCategories: () =>
@@ -35,6 +53,10 @@ const deductionsBridge: DeductionsBridgeApi = {
       ipcRenderer.invoke(ipcChannels.data.getInvoiceItemById, invoiceItemId),
     getInvoiceById: (invoiceId) =>
       ipcRenderer.invoke(ipcChannels.data.getInvoiceById, invoiceId),
+    listDocumentSummaries: () =>
+      ipcRenderer.invoke(ipcChannels.data.listDocumentSummaries),
+    getDocumentDetail: (documentId) =>
+      ipcRenderer.invoke(ipcChannels.data.getDocumentDetail, documentId),
     listSources: () => ipcRenderer.invoke(ipcChannels.data.listSources),
   },
 };

@@ -23,4 +23,9 @@ export type ImportFilesResult = {
 
 export type DeductionsImportsApi = {
   importFiles: () => Promise<ImportFilesResult>;
+  importFilePaths: (filePaths: string[]) => Promise<ImportFilesResult>;
+  getPathForFile: (file: File) => string;
+  onImportCompleted: (
+    listener: (result: ImportFilesResult) => void,
+  ) => () => void;
 };

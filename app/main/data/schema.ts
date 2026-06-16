@@ -3,6 +3,7 @@ import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqli
 
 import {
   currencies,
+  documentStatuses,
   reviewStatuses,
   sourceKinds,
   taxCategoryIds,
@@ -42,6 +43,9 @@ export const documents = sqliteTable(
     storagePath: text('storage_path').notNull(),
     mimeType: text('mime_type').notNull(),
     sha256: text('sha256').notNull(),
+    status: text('status', { enum: documentStatuses })
+      .notNull()
+      .default('imported'),
     importedAt: integer('imported_at').notNull(),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),

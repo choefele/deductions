@@ -102,6 +102,7 @@ describe('importDocuments', () => {
       storagePath: accepted.storagePath,
       mimeType: 'application/pdf',
       sha256: accepted.sha256,
+      status: 'imported',
       importedAt: Date.parse('2026-02-20T10:00:00.000Z'),
     });
     await expect(handle.data.listTaxYears()).resolves.toEqual([]);
@@ -143,9 +144,9 @@ describe('importDocuments', () => {
   it('reports per-file failures without aborting the batch', async () => {
     const handle = openDatabase();
     const inputDirectory = createTempDirectory();
-    const inputPath = join(inputDirectory, 'ok.png');
-    const missingPath = join(inputDirectory, 'missing.png');
-    writeFileSync(inputPath, 'image body');
+    const inputPath = join(inputDirectory, 'ok.pdf');
+    const missingPath = join(inputDirectory, 'missing.pdf');
+    writeFileSync(inputPath, 'invoice body');
 
     const result = await importFile(handle, [missingPath, inputPath]);
 
@@ -153,14 +154,36 @@ describe('importDocuments', () => {
     expect(result.accepted[0]).toEqual(
       expect.objectContaining({
         filePath: inputPath,
-        originalFileName: 'ok.png',
+        originalFileName: 'ok.pdf',
       }),
     );
     expect(result.failed).toEqual([
       expect.objectContaining({
         filePath: missingPath,
-        originalFileName: 'missing.png',
+        originalFileName: 'missing.pdf',
       }),
     ]);
+  });
+
+  it('rejects unsupported file types before copying them', async () => {
+    const handle = openDatabase();
+    const inputDirectory = createTempDirectory();
+    const inputPath = join(inputDirectory, 'receipt.png');
+    writeFileSync(inputPath, 'image body');
+
+    const result = await importFile(handle, [inputPath]);
+
+    expect(result).toEqual({
+      accepted: [],
+      skipped: [],
+      failed: [
+        {
+          filePath: inputPath,
+          originalFileName: 'receipt.png',
+          reason: 'Unsupported file type. Import PDF files.',
+        },
+      ],
+    });
+    expect(handle.db.select().from(documents).all()).toHaveLength(0);
   });
 });

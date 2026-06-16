@@ -104,3 +104,6 @@ export const taxYearRejectedReviewLoader = async ({
   loadTaxYearReviewQueue(readYearParam(params), 'rejected');
 
 export const sourcesLoader = async () => deductionsData.listSources();
+
+export const documentsLoader = async () =>
+  deductionsData.listDocumentSummaries();

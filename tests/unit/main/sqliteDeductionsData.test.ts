@@ -195,6 +195,48 @@ describe('SqliteDeductionsData', () => {
     ]);
   });
 
+  it('lists document summaries and detail from existing document records', async () => {
+    const handle = openDatabase();
+
+    const summaries = await handle.data.listDocumentSummaries();
+    const appleDocument = summaries.find(
+      (document) =>
+        document.originalFileName === 'apple-store-2025-02-14.pdf',
+    );
+
+    expect(summaries).toHaveLength(7);
+    expect([...new Set(summaries.map((document) => document.status))].sort()).toEqual([
+      'imported',
+      'needs_review',
+      'processed',
+      'processing',
+    ]);
+    expect(appleDocument).toEqual(
+      expect.objectContaining({
+        sourceLabel: 'Manual upload',
+        status: 'needs_review',
+        invoiceCount: 1,
+        invoiceItemCount: 1,
+        pendingItemCount: 1,
+        taxYears: [2025],
+      }),
+    );
+
+    const detail = await handle.data.getDocumentDetail(appleDocument?.id ?? '');
+
+    expect(detail).toEqual(
+      expect.objectContaining({
+        id: appleDocument?.id,
+        invoices: [
+          expect.objectContaining({
+            vendor: 'Apple Store',
+            items: [expect.objectContaining({ description: 'MacBook Pro' })],
+          }),
+        ],
+      }),
+    );
+  });
+
   it('keeps separate profile databases isolated', async () => {
     const seeded = openDatabase(true);
     const empty = openDatabase(false);

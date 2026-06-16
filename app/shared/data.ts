@@ -63,6 +63,25 @@ export type DocumentSummary = {
   importedAt: string;
 };
 
+export const documentStatuses = [
+  'imported',
+  'processing',
+  'needs_review',
+  'processed',
+] as const;
+export type DocumentStatus = (typeof documentStatuses)[number];
+
+export type DocumentListSummary = DocumentSummary & {
+  sourceLabel: string;
+  sourceKind: SourceKind;
+  status: DocumentStatus;
+  invoiceCount: number;
+  invoiceItemCount: number;
+  pendingItemCount: number;
+  taxYears: number[];
+  latestError?: string;
+};
+
 export type InvoiceHeader = {
   id: string;
   documentId: string | null;
@@ -97,6 +116,10 @@ export type InvoiceItemDetail = InvoiceItemSummary & {
 export type InvoiceDetail = InvoiceHeader & {
   document: DocumentSummary | null;
   items: InvoiceItemDetail[];
+};
+
+export type DocumentDetail = DocumentListSummary & {
+  invoices: InvoiceDetail[];
 };
 
 export type CountSummary = {
@@ -147,5 +170,7 @@ export type DeductionsDataApi = {
   ): Promise<InvoiceItemSummary[]>;
   getInvoiceItemById(invoiceItemId: string): Promise<InvoiceItemDetail | null>;
   getInvoiceById(invoiceId: string): Promise<InvoiceDetail | null>;
+  listDocumentSummaries(): Promise<DocumentListSummary[]>;
+  getDocumentDetail(documentId: string): Promise<DocumentDetail | null>;
   listSources(): Promise<SourceSummary[]>;
 };

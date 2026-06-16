@@ -7,6 +7,7 @@ export const selectImportFiles = async (
 ): Promise<ImportFilesResult> => {
   const options: OpenDialogOptions = {
     title: 'Choose invoices',
+    filters: [{ name: 'PDF invoices', extensions: ['pdf'] }],
     properties: ['openFile', 'multiSelections'],
   };
 

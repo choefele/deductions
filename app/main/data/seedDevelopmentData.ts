@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 
 import type {
+  DocumentStatus,
   ReviewStatus,
   TaxCategoryId,
 } from '../../shared/data';
@@ -12,6 +13,7 @@ import type { DeductionsDatabase } from './types';
 
 type SeedInvoiceItem = {
   hasDocument: boolean;
+  documentStatus?: DocumentStatus;
   vendor: string;
   invoiceDate: string;
   invoiceNumber?: string;
@@ -85,6 +87,7 @@ export const ensureManualUploadSource = (
 const developmentItems: SeedInvoiceItem[] = [
   {
     hasDocument: true,
+    documentStatus: 'needs_review',
     vendor: 'Apple Store',
     invoiceDate: '2025-02-14',
     invoiceNumber: 'APL-2025-8841',
@@ -100,6 +103,7 @@ const developmentItems: SeedInvoiceItem[] = [
   },
   {
     hasDocument: true,
+    documentStatus: 'processed',
     vendor: 'Amazon',
     invoiceDate: '2025-03-03',
     invoiceNumber: 'DE-552194',
@@ -114,6 +118,7 @@ const developmentItems: SeedInvoiceItem[] = [
   },
   {
     hasDocument: true,
+    documentStatus: 'processing',
     vendor: 'Techniker Krankenkasse',
     invoiceDate: '2025-01-31',
     invoiceNumber: 'TK-2025-017',
@@ -142,6 +147,7 @@ const developmentItems: SeedInvoiceItem[] = [
   },
   {
     hasDocument: true,
+    documentStatus: 'processed',
     vendor: 'Cinema Mitte',
     invoiceDate: '2025-06-02',
     originalFileName: 'cinema-mitte-2025-06-02.pdf',
@@ -155,6 +161,7 @@ const developmentItems: SeedInvoiceItem[] = [
   },
   {
     hasDocument: true,
+    documentStatus: 'processed',
     vendor: 'JetBrains',
     invoiceDate: '2024-09-01',
     invoiceNumber: 'JB-2024-923',
@@ -169,6 +176,7 @@ const developmentItems: SeedInvoiceItem[] = [
   },
   {
     hasDocument: true,
+    documentStatus: 'needs_review',
     vendor: 'Orthopaedie Zentrum',
     invoiceDate: '2024-11-18',
     invoiceNumber: 'OZ-7742',
@@ -183,6 +191,7 @@ const developmentItems: SeedInvoiceItem[] = [
   },
   {
     hasDocument: true,
+    documentStatus: 'imported',
     vendor: 'Bookshop Central',
     invoiceDate: '2024-12-04',
     originalFileName: 'bookshop-central-2024-12-04.pdf',
@@ -228,6 +237,7 @@ export const seedDevelopmentData = (
           storagePath: `documents/${item.taxYear}/${documentId}.pdf`,
           mimeType: 'application/pdf',
           sha256: shaForId(documentId),
+          status: item.documentStatus ?? 'processed',
           importedAt: timestamp,
           createdAt: timestamp,
           updatedAt: timestamp,

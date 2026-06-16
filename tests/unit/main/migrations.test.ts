@@ -64,6 +64,10 @@ describe('database migrations', () => {
         `,
       )
       .all() as Array<{ name: string }>;
+    const documentColumns = sqlite
+      .prepare('pragma table_info(documents)')
+      .all() as Array<{ name: string; notnull: number; dflt_value: string | null }>;
+
     expect(tables.map((table) => table.name)).toEqual(
       expect.arrayContaining([
         'documents',
@@ -79,6 +83,15 @@ describe('database migrations', () => {
         'invoice_items_tax_year_category_id_idx',
         'invoice_items_review_status_idx',
         'invoices_invoice_unique',
+      ]),
+    );
+    expect(documentColumns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'status',
+          notnull: 1,
+          dflt_value: "'imported'",
+        }),
       ]),
     );
   });
@@ -105,13 +118,22 @@ describe('database migrations', () => {
         applied_at: string | null;
       }>;
 
-    expect(migrations).toHaveLength(1);
-    expect(migrations[0]).toMatchObject({
-      id: 1,
-      created_at: 1781255506000,
-      name: '20260612091146_initial',
-    });
-    expect(migrations[0].hash).toHaveLength(64);
+    expect(migrations).toHaveLength(2);
+    expect(migrations).toEqual([
+      expect.objectContaining({
+        id: 1,
+        created_at: 1781255506000,
+        name: '20260612091146_initial',
+      }),
+      expect.objectContaining({
+        id: 2,
+        created_at: 1781605200000,
+        name: '20260616102000_add_document_status',
+      }),
+    ]);
+    expect(migrations.every((migration) => migration.hash.length === 64)).toBe(
+      true,
+    );
   });
 
   it('upgrades an existing migration table from the previous Drizzle shape', () => {
@@ -122,6 +144,7 @@ describe('database migrations', () => {
     );
     const hash = createHash('sha256').update(migrationSql).digest('hex');
 
+    sqlite.exec(migrationSql);
     sqlite.exec(`
       create table __drizzle_migrations (
         id integer primary key autoincrement,

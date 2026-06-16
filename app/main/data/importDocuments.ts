@@ -24,17 +24,10 @@ export type ImportDocumentsResult = Pick<
 >;
 
 const knownMimeTypes: Record<string, string> = {
-  '.gif': 'image/gif',
-  '.heic': 'image/heic',
-  '.heif': 'image/heif',
-  '.jpeg': 'image/jpeg',
-  '.jpg': 'image/jpeg',
   '.pdf': 'application/pdf',
-  '.png': 'image/png',
-  '.tif': 'image/tiff',
-  '.tiff': 'image/tiff',
-  '.webp': 'image/webp',
 };
+
+const supportedExtensions = new Set(Object.keys(knownMimeTypes));
 
 const extensionFor = (filePath: string) => extname(filePath).toLowerCase();
 
@@ -80,6 +73,15 @@ export const importDocuments = async ({
     const originalFileName = basename(filePath);
 
     try {
+      if (!supportedExtensions.has(extensionFor(filePath))) {
+        result.failed.push({
+          filePath,
+          originalFileName,
+          reason: 'Unsupported file type. Import PDF files.',
+        });
+        continue;
+      }
+
       const fileStat = await stat(filePath);
 
       if (!fileStat.isFile()) {
@@ -127,6 +129,7 @@ export const importDocuments = async ({
             storagePath,
             mimeType: mimeTypeFor(filePath),
             sha256,
+            status: 'imported',
             importedAt,
             createdAt: importedAt,
             updatedAt: importedAt,

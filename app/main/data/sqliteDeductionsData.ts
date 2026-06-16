@@ -4,7 +4,10 @@ import type {
   CountSummary,
   Currency,
   DeductionsDataApi,
+  DocumentDetail,
+  DocumentListSummary,
   DocumentSummary,
+  DocumentStatus,
   InvoiceDetail,
   InvoiceHeader,
   InvoiceItemDetail,
@@ -69,6 +72,19 @@ type InvoiceHeaderRow = {
 
 type SourceSummaryRow = Omit<SourceSummary, 'kind'> & {
   kind: SourceKind;
+};
+
+type DocumentRow = {
+  id: string;
+  sourceId: string;
+  sourceKind: SourceKind;
+  sourceLabel: string;
+  originalFileName: string;
+  storagePath: string;
+  mimeType: string;
+  sha256: string;
+  status: DocumentStatus;
+  importedAt: number;
 };
 
 const itemSummarySelection = {
@@ -170,6 +186,16 @@ const mapInvoiceHeader = (row: InvoiceHeaderRow): InvoiceHeader => ({
   vendor: row.vendor,
   invoiceDate: row.invoiceDate,
   invoiceNumber: toOptional(row.invoiceNumber),
+});
+
+const mapDocumentSummary = (row: DocumentRow): DocumentSummary => ({
+  id: row.id,
+  sourceId: row.sourceId,
+  originalFileName: row.originalFileName,
+  storagePath: row.storagePath,
+  mimeType: row.mimeType,
+  sha256: row.sha256,
+  importedAt: new Date(row.importedAt).toISOString(),
 });
 
 export class SqliteDeductionsData implements DeductionsDataApi {
@@ -293,6 +319,68 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     };
   }
 
+  async listDocumentSummaries(): Promise<DocumentListSummary[]> {
+    const rows = this.db
+      .select({
+        id: documents.id,
+        sourceId: documents.sourceId,
+        sourceKind: sources.kind,
+        sourceLabel: sources.label,
+        originalFileName: documents.originalFileName,
+        storagePath: documents.storagePath,
+        mimeType: documents.mimeType,
+        sha256: documents.sha256,
+        status: documents.status,
+        importedAt: documents.importedAt,
+      })
+      .from(documents)
+      .innerJoin(sources, eq(sources.id, documents.sourceId))
+      .orderBy(desc(documents.importedAt), desc(documents.createdAt))
+      .all() as DocumentRow[];
+
+    return rows.map((row) => this.buildDocumentSummary(row));
+  }
+
+  async getDocumentDetail(documentId: string): Promise<DocumentDetail | null> {
+    const row = this.db
+      .select({
+        id: documents.id,
+        sourceId: documents.sourceId,
+        sourceKind: sources.kind,
+        sourceLabel: sources.label,
+        originalFileName: documents.originalFileName,
+        storagePath: documents.storagePath,
+        mimeType: documents.mimeType,
+        sha256: documents.sha256,
+        status: documents.status,
+        importedAt: documents.importedAt,
+      })
+      .from(documents)
+      .innerJoin(sources, eq(sources.id, documents.sourceId))
+      .where(eq(documents.id, documentId))
+      .limit(1)
+      .get() as DocumentRow | undefined;
+
+    if (!row) {
+      return null;
+    }
+
+    const invoiceRows = this.db
+      .select(invoiceHeaderSelection)
+      .from(invoices)
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(eq(invoices.documentId, documentId))
+      .orderBy(desc(invoices.invoiceDate), asc(invoices.createdAt))
+      .all() as InvoiceHeaderRow[];
+
+    return {
+      ...this.buildDocumentSummary(row),
+      invoices: invoiceRows.map((invoiceRow) =>
+        this.buildInvoiceDetail(invoiceRow),
+      ),
+    };
+  }
+
   async listSources(): Promise<SourceSummary[]> {
     return this.db
       .select({
@@ -372,5 +460,77 @@ export class SqliteDeductionsData implements DeductionsDataApi {
       .all() as ItemSummaryRow[];
 
     return rows.map(mapItemSummary);
+  }
+
+  private buildDocumentSummary(row: DocumentRow): DocumentListSummary {
+    const invoiceCount = this.scalarCount(
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(invoices)
+        .where(eq(invoices.documentId, row.id))
+        .get(),
+    );
+    const invoiceItemCount = this.scalarCount(
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(invoiceItems)
+        .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+        .where(eq(invoices.documentId, row.id))
+        .get(),
+    );
+    const pendingItemCount = this.scalarCount(
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(invoiceItems)
+        .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+        .where(
+          and(
+            eq(invoices.documentId, row.id),
+            eq(invoiceItems.reviewStatus, 'pending'),
+          ),
+        )
+        .get(),
+    );
+    const taxYears = this.db
+      .select({ taxYear: invoiceItems.taxYear })
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .where(eq(invoices.documentId, row.id))
+      .groupBy(invoiceItems.taxYear)
+      .orderBy(desc(invoiceItems.taxYear))
+      .all()
+      .map((taxYearRow) => taxYearRow.taxYear);
+
+    return {
+      ...mapDocumentSummary(row),
+      sourceLabel: row.sourceLabel,
+      sourceKind: row.sourceKind,
+      status: row.status,
+      invoiceCount,
+      invoiceItemCount,
+      pendingItemCount,
+      taxYears,
+    };
+  }
+
+  private buildInvoiceDetail(row: InvoiceHeaderRow): InvoiceDetail {
+    const itemRows = this.db
+      .select(itemDetailSelection)
+      .from(invoiceItems)
+      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+      .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .where(eq(invoices.id, row.id))
+      .orderBy(asc(invoiceItems.sortOrder), asc(invoiceItems.createdAt))
+      .all() as ItemDetailRow[];
+
+    return {
+      ...mapInvoiceHeader(row),
+      document: toDocumentSummary(row),
+      items: itemRows.map(mapItemDetail),
+    };
+  }
+
+  private scalarCount(row: { count: number } | undefined) {
+    return Number(row?.count ?? 0);
   }
 }

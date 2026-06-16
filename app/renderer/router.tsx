@@ -9,6 +9,7 @@ import { AppShell } from './components/AppShell';
 import {
   allYearsLoader,
   categoryLoader,
+  documentsLoader,
   invoiceLoader,
   rootLoader,
   sourcesLoader,
@@ -20,7 +21,6 @@ import {
 import { AllYearsDashboard } from './views/AllYearsDashboard';
 import { CategoryView } from './views/CategoryView';
 import { DocumentsView } from './views/DocumentsView';
-import { ImportResultView } from './views/ImportResultView';
 import { InvoiceDetailView } from './views/InvoiceDetailView';
 import { ReviewQueueView } from './views/ReviewQueueView';
 import { SourcesView } from './views/SourcesView';
@@ -91,16 +91,12 @@ const router = createHashRouter([
       {
         path: 'documents',
         element: <DocumentsView />,
-        loader: sourcesLoader,
+        loader: documentsLoader,
       },
       {
         path: 'sources',
         element: <SourcesView />,
         loader: sourcesLoader,
-      },
-      {
-        path: 'import-result',
-        element: <ImportResultView />,
       },
     ],
   },

@@ -15,8 +15,7 @@ export type AppSelection =
   | { type: 'category'; year: number; categoryId: TaxCategoryId }
   | { type: 'invoice'; invoice: InvoiceItemDetail }
   | { type: 'sources' }
-  | { type: 'documents' }
-  | { type: 'import-result' };
+  | { type: 'documents' };
 
 export type BreadcrumbItem = {
   label: string;
@@ -78,8 +77,6 @@ export const getBreadcrumbs = (selection: AppSelection): BreadcrumbItem[] => {
       return [root, { label: 'Sources' }];
     case 'documents':
       return [root, { label: 'Documents' }];
-    case 'import-result':
-      return [root, { label: 'Import result' }];
   }
 };
 
@@ -104,10 +101,6 @@ export const getSelectionForPath = (
 
   if (pathname === documentsPath()) {
     return { type: 'documents' };
-  }
-
-  if (pathname === '/import-result') {
-    return { type: 'import-result' };
   }
 
   const yearReviewMatch = pathname.match(
