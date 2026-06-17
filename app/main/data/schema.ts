@@ -94,7 +94,7 @@ export const invoiceItems = sqliteTable(
     reviewStatus: text('review_status', {
       enum: reviewStatuses,
     }).notNull(),
-    deductionReason: text('deduction_reason').notNull(),
+    deductionReason: text('deduction_reason'),
     note: text('note'),
     sortOrder: integer('sort_order').notNull(),
     createdAt: integer('created_at').notNull(),

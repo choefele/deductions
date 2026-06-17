@@ -81,8 +81,7 @@ const parser = (parsed: ParsedInvoiceDocument): InvoiceAiParser => ({
 });
 
 const validParsedDocument = (): ParsedInvoiceDocument => ({
-  documentType: 'invoice',
-  warnings: [],
+  isInvoiceLike: true,
   invoices: [
     {
       vendor: 'Vendor Example',
@@ -92,11 +91,7 @@ const validParsedDocument = (): ParsedInvoiceDocument => ({
       items: [
         {
           description: 'Desk lamp',
-          amountCents: 4999,
-          taxYear: null,
-          categoryId: null,
-          deductionReason: 'Used in home office.',
-          note: null,
+          amountText: '49,99 €',
         },
       ],
     },
@@ -155,6 +150,8 @@ describe('processStoredDocument', () => {
         taxYear: 2025,
         categoryId: 'uncategorized',
         amountCents: 4999,
+        deductionReason: null,
+        note: null,
       }),
     );
   });
@@ -196,9 +193,8 @@ describe('processStoredDocument', () => {
       documentId: 'doc-1',
       extractor: extractor(),
       parser: parser({
-        documentType: 'not_invoice',
+        isInvoiceLike: false,
         invoices: [],
-        warnings: [],
       }),
     });
 
@@ -213,6 +209,51 @@ describe('processStoredDocument', () => {
         status: 'needs_review',
         processingError: 'AI did not find an invoice or receipt.',
       }),
+    );
+  });
+
+  it('converts German and English formatted amounts to cents', async () => {
+    const handle = openDatabase();
+    insertDocument(handle);
+    const amountCases = [
+      ['German decimal comma', '5,53 €', 553],
+      ['English decimal point', '5.53 €', 553],
+      ['English currency prefix', '€5.53', 553],
+      ['German thousand separator', '1.234,56 EUR', 123456],
+      ['English thousand separator', 'EUR 1,234.56', 123456],
+      ['Space thousand separator', '1 234,56 €', 123456],
+    ] as const;
+
+    await processStoredDocument({
+      db: handle.db,
+      profileDirectory: handle.profileDirectory,
+      documentId: 'doc-1',
+      extractor: extractor(),
+      parser: parser({
+        ...validParsedDocument(),
+        invoices: [
+          {
+            ...validParsedDocument().invoices[0],
+            items: amountCases.map(([label, amountText]) => ({
+              description: label,
+              amountText,
+            })),
+          },
+        ],
+      }),
+    });
+
+    const items = handle.db.select().from(invoiceItems).all();
+
+    expect(items).toEqual(
+      expect.arrayContaining(
+        amountCases.map(([label, , amountCents]) =>
+          expect.objectContaining({
+            description: label,
+            amountCents,
+          }),
+        ),
+      ),
     );
   });
 
@@ -263,9 +304,8 @@ describe('processStoredDocument', () => {
             invoiceNumber: 'INV-2',
             items: [
               {
-                ...validParsedDocument().invoices[0].items[0],
                 description: 'Replacement item',
-                amountCents: 1299,
+                amountText: '12,99 €',
               },
             ],
           },

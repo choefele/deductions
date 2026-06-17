@@ -67,6 +67,9 @@ describe('database migrations', () => {
     const documentColumns = sqlite
       .prepare('pragma table_info(documents)')
       .all() as Array<{ name: string; notnull: number; dflt_value: string | null }>;
+    const invoiceItemColumns = sqlite
+      .prepare('pragma table_info(invoice_items)')
+      .all() as Array<{ name: string; notnull: number; dflt_value: string | null }>;
 
     expect(tables.map((table) => table.name)).toEqual(
       expect.arrayContaining([
@@ -106,6 +109,14 @@ describe('database migrations', () => {
         }),
         expect.objectContaining({
           name: 'processor_version',
+          notnull: 0,
+        }),
+      ]),
+    );
+    expect(invoiceItemColumns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'deduction_reason',
           notnull: 0,
         }),
       ]),

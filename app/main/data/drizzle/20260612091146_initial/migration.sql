@@ -23,7 +23,7 @@ CREATE TABLE `invoice_items` (
 	`tax_year` integer NOT NULL,
 	`category_id` text NOT NULL,
 	`review_status` text NOT NULL,
-	`deduction_reason` text NOT NULL,
+	`deduction_reason` text,
 	`note` text,
 	`sort_order` integer NOT NULL,
 	`created_at` integer NOT NULL,

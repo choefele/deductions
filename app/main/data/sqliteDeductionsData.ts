@@ -48,7 +48,7 @@ type ItemSummaryRow = {
 };
 
 type ItemDetailRow = ItemSummaryRow & {
-  deductionReason: string;
+  deductionReason: string | null;
   note: string | null;
   documentSummaryId: string | null;
   originalFileName: string | null;

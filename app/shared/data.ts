@@ -111,7 +111,7 @@ export type InvoiceItemSummary = {
 };
 
 export type InvoiceItemDetail = InvoiceItemSummary & {
-  deductionReason: string;
+  deductionReason: string | null;
   note?: string;
   document: DocumentSummary | null;
 };

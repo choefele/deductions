@@ -3,7 +3,6 @@ import { join } from 'node:path';
 
 import { eq, inArray } from 'drizzle-orm';
 
-import { taxCategoryIds, type TaxCategoryId } from '../../shared/data';
 import { documents, invoiceItems, invoices } from '../data/schema';
 import type { DeductionsDatabase } from '../data/types';
 import type {
@@ -30,9 +29,6 @@ type ValidInvoiceItem = {
   description: string;
   amountCents: number;
   taxYear: number;
-  categoryId: TaxCategoryId;
-  deductionReason: string;
-  note: string | null;
 };
 
 type ValidInvoice = {
@@ -55,13 +51,39 @@ const isIsoDate = (value: string) => {
 const taxYearFromDate = (invoiceDate: string) =>
   Number.parseInt(invoiceDate.slice(0, 4), 10);
 
-const normalizeCategoryId = (categoryId: TaxCategoryId | null) =>
-  categoryId && taxCategoryIds.includes(categoryId) ? categoryId : 'uncategorized';
-
 const trimOrNull = (value: string | null) => {
   const trimmed = value?.trim() ?? '';
 
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const parseMoneyToCents = (value: string) => {
+  const match = value
+    .trim()
+    .replaceAll('\u00a0', ' ')
+    .match(/^(-)?\s*(?:(?:€|EUR)\s*)?(\d[\d.,' ]*[.,]\d{2})\s*(?:(?:€|EUR))?$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, sign, amountText] = match;
+  const decimalIndex = Math.max(
+    amountText.lastIndexOf(','),
+    amountText.lastIndexOf('.'),
+  );
+  const euroText = amountText.slice(0, decimalIndex).replace(/[.,' ]/g, '');
+  const centText = amountText.slice(decimalIndex + 1);
+
+  if (!/^\d+$/.test(euroText) || !/^\d{2}$/.test(centText)) {
+    return null;
+  }
+
+  const euros = Number.parseInt(euroText, 10);
+  const cents = Number.parseInt(centText, 10);
+  const amountCents = euros * 100 + cents;
+
+  return sign ? -amountCents : amountCents;
 };
 
 const validateParsedInvoice = (invoice: ParsedInvoice): ValidInvoice | null => {
@@ -76,14 +98,13 @@ const validateParsedInvoice = (invoice: ParsedInvoice): ValidInvoice | null => {
   const items = invoice.items
     .map((item): ValidInvoiceItem | null => {
       const description = item.description.trim();
-      const deductionReason = item.deductionReason.trim();
-      const taxYear = item.taxYear ?? defaultTaxYear;
+      const amountCents = parseMoneyToCents(item.amountText);
+      const taxYear = defaultTaxYear;
 
       if (
         description.length === 0 ||
-        deductionReason.length === 0 ||
-        !Number.isInteger(item.amountCents) ||
-        item.amountCents <= 0 ||
+        amountCents === null ||
+        amountCents <= 0 ||
         !Number.isInteger(taxYear)
       ) {
         return null;
@@ -91,11 +112,8 @@ const validateParsedInvoice = (invoice: ParsedInvoice): ValidInvoice | null => {
 
       return {
         description,
-        amountCents: item.amountCents,
+        amountCents,
         taxYear,
-        categoryId: normalizeCategoryId(item.categoryId),
-        deductionReason,
-        note: trimOrNull(item.note),
       };
     })
     .filter((item): item is ValidInvoiceItem => item !== null);
@@ -113,7 +131,7 @@ const validateParsedInvoice = (invoice: ParsedInvoice): ValidInvoice | null => {
 };
 
 const validateParsedDocument = (parsed: ParsedInvoiceDocument) => {
-  if (parsed.documentType !== 'invoice' && parsed.documentType !== 'receipt') {
+  if (!parsed.isInvoiceLike) {
     throw new Error('AI did not find an invoice or receipt.');
   }
 
@@ -248,10 +266,10 @@ export const processStoredDocument = async ({
               amountCents: item.amountCents,
               currency: 'EUR',
               taxYear: item.taxYear,
-              categoryId: item.categoryId,
+              categoryId: 'uncategorized',
               reviewStatus: 'pending',
-              deductionReason: item.deductionReason,
-              note: item.note,
+              deductionReason: null,
+              note: null,
               sortOrder,
               createdAt: completedAt,
               updatedAt: completedAt,

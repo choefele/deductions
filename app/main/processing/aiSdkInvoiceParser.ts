@@ -2,16 +2,14 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateObject } from 'ai';
 import { z } from 'zod/v4';
 
-import { taxCategoryIds } from '../../shared/data';
 import type { AiProviderSettings, InvoiceAiParser, NormalizedDocumentText } from './types';
 
 const invoiceItemSchema = z.object({
   description: z.string().min(1),
-  amountCents: z.number().int(),
-  taxYear: z.number().int().nullable(),
-  categoryId: z.enum(taxCategoryIds).nullable(),
-  deductionReason: z.string().min(1),
-  note: z.string().nullable(),
+  amountText: z
+    .string()
+    .min(1)
+    .describe('Exact gross line-item subtotal including VAT as printed, for example 5,53 € or €5.53.'),
 });
 
 const invoiceSchema = z.object({
@@ -23,15 +21,21 @@ const invoiceSchema = z.object({
 });
 
 const parsedInvoiceDocumentSchema = z.object({
-  documentType: z.enum(['invoice', 'receipt', 'not_invoice', 'unknown']),
+  isInvoiceLike: z.boolean(),
   invoices: z.array(invoiceSchema),
-  warnings: z.array(z.string()),
 });
 
 const renderDocumentText = (text: NormalizedDocumentText) =>
   text.pages
     .map((page) => `--- Page ${page.pageNumber} ---\n${page.text}`)
     .join('\n\n');
+
+const systemPrompt =
+  'Extract factual invoice or receipt data from PDF text. ' +
+  'Return only facts supported by the text. Use ISO dates in YYYY-MM-DD format when a full date is available. ' +
+  'For each item, amountText is the exact gross line-item subtotal including VAT as printed, for example 5,53 € or 5.53 EUR. ' +
+  'Ignore invoice totals, payment amounts, shipping rows, discount rows, and VAT summary rows. ' +
+  'If this is not an invoice or receipt, set isInvoiceLike to false and return no invoices.';
 
 export class AiSdkInvoiceParser implements InvoiceAiParser {
   private readonly provider;
@@ -55,11 +59,7 @@ export class AiSdkInvoiceParser implements InvoiceAiParser {
       schema: parsedInvoiceDocumentSchema,
       schemaName: 'ParsedInvoiceDocument',
       schemaDescription: 'Structured invoice and receipt extraction result.',
-      system:
-        'Extract German tax-relevant invoice or receipt data from PDF text. ' +
-        'Return only facts supported by the text. Use EUR amounts in integer cents. ' +
-        'If a category is uncertain, use null. If tax year is uncertain, use null. ' +
-        'If the document is not an invoice or receipt, return documentType not_invoice and no invoices.',
+      system: systemPrompt,
       prompt:
         `File name: ${input.fileName}\n` +
         `Document id: ${input.documentId}\n\n` +

@@ -1,5 +1,3 @@
-import type { TaxCategoryId } from '../../shared/data';
-
 export type NormalizedDocumentText = {
   documentId: string;
   extractor: 'pdfjs';
@@ -13,9 +11,8 @@ export type NormalizedDocumentText = {
 };
 
 export type ParsedInvoiceDocument = {
-  documentType: 'invoice' | 'receipt' | 'not_invoice' | 'unknown';
+  isInvoiceLike: boolean;
   invoices: ParsedInvoice[];
-  warnings: string[];
 };
 
 export type ParsedInvoice = {
@@ -28,11 +25,7 @@ export type ParsedInvoice = {
 
 export type ParsedInvoiceItem = {
   description: string;
-  amountCents: number;
-  taxYear: number | null;
-  categoryId: TaxCategoryId | null;
-  deductionReason: string;
-  note: string | null;
+  amountText: string;
 };
 
 export type InvoiceAiParser = {

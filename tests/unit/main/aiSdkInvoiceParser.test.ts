@@ -39,7 +39,7 @@ const listen = async (handler: (body: Record<string, unknown>) => void) => {
             message: {
               role: 'assistant',
               content: JSON.stringify({
-                documentType: 'invoice',
+                isInvoiceLike: true,
                 invoices: [
                   {
                     vendor: 'Vendor Example',
@@ -49,16 +49,11 @@ const listen = async (handler: (body: Record<string, unknown>) => void) => {
                     items: [
                       {
                         description: 'Office chair',
-                        amountCents: 12345,
-                        taxYear: 2026,
-                        categoryId: 'work-related-expenses',
-                        deductionReason: 'Used for work.',
-                        note: null,
+                        amountText: '123,45 €',
                       },
                     ],
                   },
                 ],
-                warnings: [],
               }),
             },
           },
@@ -131,7 +126,7 @@ describe('AiSdkInvoiceParser', () => {
       text: textFixture,
     });
 
-    expect(parsed.documentType).toBe('invoice');
+    expect(parsed.isInvoiceLike).toBe(true);
     expect(requestBody).toEqual(
       expect.objectContaining({
         model: 'test-model',
@@ -143,6 +138,16 @@ describe('AiSdkInvoiceParser', () => {
             schema: expect.any(Object),
           }),
         }),
+      }),
+    );
+    expect(requestBody).toEqual(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'system',
+            content: expect.stringContaining('amountText is the exact gross line-item subtotal'),
+          }),
+        ]),
       }),
     );
   });
