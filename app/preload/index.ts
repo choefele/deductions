@@ -79,6 +79,12 @@ const deductionsBridge: DeductionsBridgeApi = {
       };
     },
   },
+  exports: {
+    listExportYearOptions: () =>
+      ipcRenderer.invoke(ipcChannels.exports.listYearOptions),
+    exportInvoices: (request) =>
+      ipcRenderer.invoke(ipcChannels.exports.exportInvoices, request),
+  },
 };
 
 contextBridge.exposeInMainWorld('deductions', deductionsBridge);

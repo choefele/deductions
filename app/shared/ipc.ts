@@ -1,4 +1,5 @@
 import type { DeductionsDataApi } from './data';
+import type { DeductionsExportsApi } from './exports';
 import type { DeductionsImportsApi } from './imports';
 import type { DeductionsProcessingApi } from './processing';
 
@@ -27,6 +28,10 @@ export const ipcChannels = {
     processDocument: 'deductions:processing:process-document',
     documentsChanged: 'deductions:processing:documents-changed',
   },
+  exports: {
+    listYearOptions: 'deductions:exports:list-year-options',
+    exportInvoices: 'deductions:exports:export-invoices',
+  },
 } as const;
 
 export type DeductionsBridgeApi = {
@@ -37,4 +42,5 @@ export type DeductionsBridgeApi = {
   imports: DeductionsImportsApi;
   data: DeductionsDataApi;
   processing: DeductionsProcessingApi;
+  exports: DeductionsExportsApi;
 };

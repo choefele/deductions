@@ -10,7 +10,13 @@ import {
 import type { ImportFilesResult } from '../shared/imports';
 import { ipcChannels } from '../shared/ipc';
 import type { ProcessDocumentResult } from '../shared/processing';
-import { selectImportFiles } from './dialogs';
+import type { ExportInvoicesRequest } from '../shared/exports';
+import {
+  selectExportDirectory,
+  selectImportFiles,
+  selectSingleExportZipPath,
+} from './dialogs';
+import type { InvoiceExporter } from './exports/invoiceExporter';
 
 const minimumTaxYear = 1900;
 const maximumTaxYear = 2200;
@@ -87,6 +93,25 @@ const readFilePaths = (channel: string, value: unknown) => {
   return value.filter((filePath) => filePath.trim().length > 0);
 };
 
+const readExportInvoicesRequest = (
+  channel: string,
+  value: unknown,
+): ExportInvoicesRequest => {
+  if (!value || typeof value !== 'object' || !('years' in value)) {
+    throw new Error(`${channel} received an invalid export request`);
+  }
+
+  const years = (value as { years: unknown }).years;
+
+  if (!Array.isArray(years) || years.length === 0) {
+    throw new Error(`${channel} received an empty year selection`);
+  }
+
+  return {
+    years: [...new Set(years.map((year) => readTaxYear(channel, year)))],
+  };
+};
+
 export type ImportFiles = (
   filePaths: string[],
 ) => Promise<Pick<ImportFilesResult, 'accepted' | 'skipped' | 'failed'>>;
@@ -126,6 +151,7 @@ export const registerDeductionsIpcHandlers = (
   data: DeductionsDataApi,
   importFiles?: ImportFiles,
   processDocument?: ProcessDocument,
+  exporter?: InvoiceExporter,
 ) => {
   ipcMain.handle(ipcChannels.imports.importFiles, async (event, ...args) => {
     assertNoArguments(ipcChannels.imports.importFiles, args);
@@ -151,6 +177,58 @@ export const registerDeductionsIpcHandlers = (
       readFilePaths(ipcChannels.imports.importFilePaths, args[0]),
       importFiles,
     );
+  });
+
+  ipcMain.handle(ipcChannels.exports.listYearOptions, (_event, ...args) => {
+    assertNoArguments(ipcChannels.exports.listYearOptions, args);
+
+    if (!exporter) {
+      throw new Error('Deductions export is not configured');
+    }
+
+    return exporter.listExportYearOptions();
+  });
+
+  ipcMain.handle(ipcChannels.exports.exportInvoices, async (event, ...args) => {
+    assertOneArgument(ipcChannels.exports.exportInvoices, args);
+
+    if (!exporter) {
+      throw new Error('Deductions export is not configured');
+    }
+
+    const request = readExportInvoicesRequest(
+      ipcChannels.exports.exportInvoices,
+      args[0],
+    );
+    const browserWindow =
+      BrowserWindow.fromWebContents(event.sender) ?? undefined;
+
+    if (request.years.length === 1) {
+      const selection = await selectSingleExportZipPath(
+        request.years[0],
+        browserWindow,
+      );
+
+      if (selection.canceled || !selection.filePath) {
+        return { canceled: true, results: [] };
+      }
+
+      return exporter.exportInvoicesToTarget(request, {
+        kind: 'single-file',
+        filePath: selection.filePath,
+      });
+    }
+
+    const selection = await selectExportDirectory(browserWindow);
+
+    if (selection.canceled || !selection.directoryPath) {
+      return { canceled: true, results: [] };
+    }
+
+    return exporter.exportInvoicesToTarget(request, {
+      kind: 'directory',
+      directoryPath: selection.directoryPath,
+    });
   });
 
   ipcMain.handle(ipcChannels.data.listCategories, (_event, ...args) => {

@@ -30,6 +30,18 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     await expect(
       page.getByRole('button', { name: 'Import invoice' }),
     ).toBeVisible();
+    await page.locator('header').getByRole('button', { name: 'Export' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Export invoices' }),
+    ).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Year' })).toBeVisible();
+    await expect(
+      page.getByRole('cell', { name: '2025', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('cell', { name: '2024', exact: true }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await sidebar.getByRole('link', { name: 'Documents' }).click();
     await expect(
       page.getByRole('heading', { name: 'Documents' }),
@@ -108,6 +120,11 @@ test('opens the Deductions shell and exposes the preload API', async () => {
         typeof window.deductions.data.listTaxYears === 'function',
       hasListDocumentSummaries:
         typeof window.deductions.data.listDocumentSummaries === 'function',
+      hasExportsApi: typeof window.deductions.exports === 'object',
+      hasListExportYearOptions:
+        typeof window.deductions.exports.listExportYearOptions === 'function',
+      hasExportInvoices:
+        typeof window.deductions.exports.exportInvoices === 'function',
       platform: window.deductions.appInfo.platform,
       version: window.deductions.appInfo.version,
       hasNodeRequire: typeof Reflect.get(window, 'require') === 'function',
@@ -124,6 +141,9 @@ test('opens the Deductions shell and exposes the preload API', async () => {
       hasDataApi: true,
       hasListTaxYears: true,
       hasListDocumentSummaries: true,
+      hasExportsApi: true,
+      hasListExportYearOptions: true,
+      hasExportInvoices: true,
       hasNodeRequire: false,
     });
     expect(apiShape.platform.length).toBeGreaterThan(0);

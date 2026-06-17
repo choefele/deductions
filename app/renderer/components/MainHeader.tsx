@@ -10,6 +10,7 @@ import { FileUp, Search } from 'lucide-react';
 import { documentsPath, getBreadcrumbs, getSelectionForPath } from '@/navigation';
 import type { rootLoader } from '@/routeData';
 import { Breadcrumbs } from './Breadcrumbs';
+import { ExportInvoicesDialog } from './ExportInvoicesDialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
@@ -28,6 +29,14 @@ export const MainHeader = () => {
     [location.pathname, rootData.taxYears],
   );
   const breadcrumbs = getBreadcrumbs(selection);
+  const currentYear =
+    selection.type === 'tax-year' ||
+    selection.type === 'tax-year-review-queue' ||
+    selection.type === 'category'
+      ? selection.year
+      : selection.type === 'invoice'
+        ? selection.invoice.taxYear
+        : undefined;
 
   const handleImport = async () => {
     setIsImporting(true);
@@ -57,10 +66,15 @@ export const MainHeader = () => {
           placeholder="Search invoices"
         />
       </div>
-      <Button onClick={handleImport} disabled={isImporting}>
+      <Button
+        className="shadow-sm"
+        onClick={handleImport}
+        disabled={isImporting}
+      >
         <FileUp />
         {isImporting ? 'Importing...' : 'Import invoice'}
       </Button>
+      <ExportInvoicesDialog currentYear={currentYear} />
     </header>
   );
 };
