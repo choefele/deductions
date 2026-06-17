@@ -1,0 +1,407 @@
+# Export Invoice Data Plan
+
+## Purpose
+
+Plan an export flow that creates tax consultant handover packages from accepted and in-review invoice items.
+
+This is a design plan only. It does not implement UI, schema, IPC, export generation, dependency changes, or tests.
+
+## Goals
+
+- Add an export button next to the existing `Import invoice` button.
+- Let the user select one or more tax years to export.
+- Create one separate zip package per selected tax year.
+- Include an Excel-compatible spreadsheet with invoice item data in each package.
+- Include the corresponding proof documents in each package.
+- Include invoice items with `reviewStatus = 'accepted'` or `reviewStatus = 'pending'` in the first version.
+- Mark each exported row with its review status so the consultant can distinguish accepted items from items still in review.
+- Generate export output in the Electron main process so file access and zip creation do not happen in the renderer.
+
+## Reviewed Decisions
+
+- Multi-year export writes several separate zip files into a user-chosen folder.
+- Missing proof for an exported invoice item should not happen in normal app data. Treat it as an export-blocking data integrity issue and report the affected items.
+- Spreadsheet column labels are English for now.
+- `.xlsx` is enough for the first version. Do not include a CSV copy.
+- Use one item-level worksheet for the first version. Do not add a separate totals sheet yet.
+- The proposed item-level columns are enough for the first version.
+- Proof documents use normalized generated file names, not original file names.
+- Proof document names should sort by invoice date and stay short while still reminding the user what the item is.
+
+## Non-Goals
+
+- Do not export rejected invoice items in the first version.
+- Do not create a tax return file or map data to official ELSTER/tax software formats.
+- Do not add consultant contact management, email sending, or cloud upload.
+- Do not mutate invoice data during export.
+- Do not add persistent export history in the first version.
+- Do not solve missing-proof remediation beyond reporting which included items cannot be exported cleanly.
+
+## Current Context
+
+The existing app shape fits the export feature:
+
+- `MainHeader` already owns the `Import invoice` button.
+- `invoice_items` are the tax-review and export unit.
+- `invoice_items.tax_year` selects the export year.
+- `invoice_items.review_status` decides whether an item is included.
+- `invoices` provide vendor, invoice date, invoice number, and document linkage.
+- `documents.storage_path` points to the app-owned proof file inside the active profile directory.
+- IPC currently exposes data, imports, and processing APIs, but no export API.
+
+The export should follow the existing architecture:
+
+```text
+renderer button/dialog
+  -> preload bridge
+  -> IPC handler
+  -> main-process export service
+  -> SQLite query + profile document file reads
+  -> spreadsheet + zip package written to chosen destination
+```
+
+## User Flow
+
+1. User clicks `Export` next to `Import invoice` in the main header.
+2. App opens an export dialog or sheet.
+3. Dialog lists tax years with exportable invoice item counts.
+4. User selects one or more years.
+5. User chooses where to save the export:
+   - If one year is selected, use a save dialog for that year's zip file.
+   - If multiple years are selected, use a directory chooser and write one zip per year into that directory.
+6. App validates that each selected year has exportable items.
+7. App creates one zip package per selected year.
+8. App shows a completion result with created file paths and any skipped or failed year exports.
+
+Recommended button label: `Export`.
+
+Recommended icon: `Download` from `lucide-react`.
+
+## Year Selection
+
+The export dialog should show only years that have at least one exportable invoice item, or show all known years with disabled rows for years with zero exportable items.
+
+Recommended default selection:
+
+- On a tax-year route: select that tax year if it has exportable items.
+- On other routes: select the latest year with exportable items.
+
+The dialog should show enough context to avoid accidental exports:
+
+| Column | Meaning |
+| --- | --- |
+| Year | `invoice_items.tax_year` |
+| Accepted items | Count of accepted invoice items for that year |
+| In-review items | Count of pending invoice items for that year |
+| Total amount | Sum of accepted and pending item amounts for that year |
+| Issues | Count of included items missing export requirements |
+
+For the first version, the only hard issue should be a missing readable proof document. Additional validation can be added later.
+
+## Package Layout
+
+Create one zip per tax year with a deterministic, readable name:
+
+```text
+Deductions-export-2025.zip
+```
+
+Inside each zip:
+
+```text
+Deductions-export-2025/
+  invoices-2025.xlsx
+  documents/
+    2025-01-14-apple-macbook.pdf
+    2025-03-02-telekom-internet.pdf
+  README.txt
+```
+
+`README.txt` should be generated by the app and should explain:
+
+- export creation timestamp.
+- selected tax year.
+- that accepted and in-review invoice items are included.
+- total included item count and amount.
+- that rows marked `In review` still need confirmation before filing.
+- that document file names correspond to the `Proof file` column in the spreadsheet.
+
+Use stable, sanitized proof file names inside the zip. Do not expose absolute local paths. File names should sort naturally by invoice date and be short reminders of the item.
+
+Recommended proof file pattern:
+
+```text
+documents/YYYY-MM-DD-vendor-hint.pdf
+```
+
+Rules:
+
+- `YYYY-MM-DD` comes from `invoices.invoice_date`; this makes document folders sort by date.
+- `vendor` is a lowercase slug from `invoices.vendor`, capped at about 20 characters.
+- `hint` is a lowercase slug from the invoice item description when there is one clear item, otherwise from `invoice_number` or the original file name, capped at about 28 characters.
+- Keep the full generated file name under about 80 characters including extension.
+- Remove punctuation that is unsafe or noisy in file systems; collapse whitespace and repeated separators to single hyphens.
+- If two proof files would receive the same name, add a short numeric suffix such as `-02`.
+- Do not include absolute paths, internal IDs, long hashes, or full original file names in proof file names.
+
+Examples:
+
+```text
+documents/2025-01-14-apple-macbook.pdf
+documents/2025-01-14-apple-macbook-02.pdf
+documents/2025-03-02-telekom-internet.pdf
+documents/2025-05-18-mediamarkt-monitor.pdf
+```
+
+If several included invoice items in the same year use the same source document, include that document only once and point each spreadsheet row to the same relative proof path.
+
+## Spreadsheet Format
+
+Use `.xlsx` as the first spreadsheet format. It is directly Excel-compatible and avoids locale-specific CSV separator and decimal issues.
+
+Recommended workbook:
+
+- Sheet name: `Invoices`.
+- One header row.
+- One row per accepted or pending invoice item.
+- Frozen header row.
+- Currency/amount cells formatted as numeric values, not preformatted strings.
+- Auto-filter enabled on the table range.
+- Reasonable column widths.
+- English column labels.
+- No separate totals sheet in the first version.
+
+Recommended columns:
+
+| Column | Source |
+| --- | --- |
+| Tax year | `invoice_items.tax_year` |
+| Review status | display label for `invoice_items.review_status`, either `Accepted` or `In review` |
+| Category | display label for `invoice_items.category_id` |
+| Vendor | `invoices.vendor` |
+| Invoice date | `invoices.invoice_date` |
+| Invoice number | `invoices.invoice_number` |
+| Description | `invoice_items.description` |
+| Amount | `invoice_items.amount_cents / 100` |
+| Currency | `invoice_items.currency` |
+| Deduction reason | `invoice_items.deduction_reason` |
+| Note | `invoice_items.note` |
+| Proof file | relative path inside the zip, for example `documents/2025-01-14-apple-macbook.pdf` |
+| Original file name | `documents.original_file_name` |
+| Invoice item ID | `invoice_items.id` |
+| Document ID | `documents.id` |
+
+Keep internal IDs at the end. They help support/debugging without distracting from the consultant-facing columns.
+
+## Export Data Query
+
+Add a main-process read model specifically for export rather than reusing renderer list models.
+
+Recommended query per year:
+
+```text
+invoice_items
+  inner join invoices on invoices.id = invoice_items.invoice_id
+  left join documents on documents.id = invoices.document_id
+where invoice_items.tax_year = :year
+  and invoice_items.review_status in ('accepted', 'pending')
+order by invoices.invoice_date asc,
+         invoices.vendor asc,
+         invoice_items.sort_order asc,
+         invoice_items.created_at asc
+```
+
+The export service should resolve document paths by joining the active profile directory with `documents.storage_path`.
+
+Do not trust renderer-provided paths. The renderer should pass only selected tax years and the destination chosen through the main-process dialog.
+
+## Validation And Error Handling
+
+Before writing files, validate each selected year:
+
+- year is a valid integer in the same range used by existing IPC validation.
+- year has at least one accepted or pending invoice item.
+- each included item has an invoice row.
+- each included item has a linked document row.
+- each linked document file exists and is readable.
+
+Recommended first-version behavior:
+
+- If a selected year has no accepted or pending items, skip that year and report it.
+- If any included item for a year is missing proof, do not create that year's zip. This should be exceptional because exported invoice items are expected to have proof. Report the blocking items as an export issue so the user can fix the data before handover.
+- If package creation fails halfway through, remove the partial zip if possible and report the failure.
+
+This default is conservative for tax handover: a package should not silently omit proof for included rows.
+
+## Main Process API
+
+Add an export API namespace instead of mixing export into `data` or `imports`.
+
+Recommended shared types:
+
+```ts
+export type ExportYearOption = {
+  year: number;
+  acceptedItemCount: number;
+  inReviewItemCount: number;
+  includedItemCount: number;
+  includedAmount: number;
+  currency: 'EUR';
+  issueCount: number;
+};
+
+export type ExportInvoicesRequest = {
+  years: number[];
+};
+
+export type ExportYearResult = {
+  year: number;
+  status: 'created' | 'skipped' | 'failed';
+  filePath?: string;
+  itemCount: number;
+  issueCount: number;
+  message?: string;
+};
+
+export type ExportInvoicesResult = {
+  canceled: boolean;
+  results: ExportYearResult[];
+};
+
+export type DeductionsExportsApi = {
+  listExportYearOptions(): Promise<ExportYearOption[]>;
+  exportInvoices(request: ExportInvoicesRequest): Promise<ExportInvoicesResult>;
+};
+```
+
+IPC channels:
+
+```ts
+deductions:exports:list-year-options
+deductions:exports:export-invoices
+```
+
+Renderer bridge:
+
+```ts
+window.deductions.exports.listExportYearOptions()
+window.deductions.exports.exportInvoices({ years })
+```
+
+## Dialogs
+
+Add main-process dialog helpers:
+
+- `selectSingleExportZipPath(year)`
+- `selectExportDirectory(years)`
+
+Single-year save dialog:
+
+- title: `Export invoices`
+- default file name: `Deductions-export-2025.zip`
+- filter: `Zip package (*.zip)`
+
+Multi-year directory dialog:
+
+- title: `Choose export folder`
+- properties: `openDirectory`, `createDirectory`
+
+The renderer should not create or validate destination paths directly.
+
+## Dependencies
+
+The project does not currently include a spreadsheet or zip generation dependency.
+
+Recommended dependency direction for implementation:
+
+- Spreadsheet: use a maintained `.xlsx` writer such as `exceljs`.
+- Zip: use a streaming zip writer such as `archiver` or a small zip-focused package.
+
+Before implementation, verify package maintenance, Electron main-process compatibility, ESM support, and bundle impact.
+
+Keep both dependencies main-process only. The renderer should never import them.
+
+## UI Placement
+
+Add the export button in `MainHeader` directly before or after `Import invoice`.
+
+Recommended order:
+
+```text
+[Search invoices] [Export] [Import invoice]
+```
+
+Reasoning: import is an intake action; export is an output action. Keeping both in the header makes the main workflow discoverable without introducing a new top-level route.
+
+The export dialog should be a compact operational dialog, not a landing page or separate marketing-style screen.
+
+Recommended dialog states:
+
+- loading year options.
+- no exportable items available.
+- selectable year checklist.
+- creating export.
+- completed with package paths.
+- failed with actionable error messages.
+
+## Security And Privacy
+
+- Never include absolute local file paths in the spreadsheet or README.
+- Never export rejected items unless the user explicitly chooses a future option.
+- Keep export generation in the main process.
+- Sanitize file names placed into the zip.
+- Avoid overwriting an existing zip without native save-dialog confirmation.
+- Do not include app database files, AI prompt text, processing errors, or internal profile metadata.
+
+## Test Plan
+
+Unit tests:
+
+- export query includes accepted and pending items for the selected year.
+- export query excludes rejected items.
+- spreadsheet rows mark pending items as `In review`.
+- multi-year selection produces separate year results.
+- duplicated proof documents are included once per package.
+- missing proof blocks package creation and reports the affected items.
+- zip file names and proof file names are sanitized and deterministic.
+- spreadsheet rows contain expected values and proof relative paths.
+- amount cents are converted to numeric spreadsheet values.
+
+IPC tests:
+
+- invalid year input is rejected.
+- empty year selection is rejected.
+- canceled save/directory dialog returns `{ canceled: true }`.
+
+Renderer tests:
+
+- header shows `Export` next to `Import invoice`.
+- export dialog lists year options with accepted and in-review counts.
+- selected years are passed to the export bridge.
+- creating state disables repeated export submissions.
+- completion state shows created package paths.
+
+End-to-end smoke:
+
+- seed accepted and pending invoice items with documents.
+- export one year.
+- verify zip exists.
+- verify zip contains `.xlsx`, `README.txt`, and expected proof PDFs.
+
+## Implementation Slices
+
+Recommended implementation order after this plan is approved:
+
+1. Add shared export types and IPC channel names.
+2. Add main-process export data query and validation logic.
+3. Add spreadsheet writer and zip package generator.
+4. Add main-process save/directory dialogs.
+5. Add preload bridge methods.
+6. Add `Export` button and export dialog UI.
+7. Add focused unit tests for export generation.
+8. Add renderer tests and an e2e smoke test.
+
+## Finalized Questions
+
+- `.xlsx` is enough for the first version. Do not add a CSV copy.
+- The proposed columns are enough for the first version.
