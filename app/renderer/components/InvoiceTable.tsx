@@ -43,7 +43,14 @@ export const InvoiceTable = ({
 
   return (
     <div className="rounded-lg border bg-card">
-      <Table>
+      <Table className="table-fixed">
+        <colgroup>
+          <col className="w-auto" />
+          <col className="w-28" />
+          <col className="w-36" />
+          <col className="w-28" />
+          <col className="w-28" />
+        </colgroup>
         <TableHeader>
           <TableRow>
             <TableHead>Vendor</TableHead>
@@ -56,19 +63,21 @@ export const InvoiceTable = ({
         <TableBody>
           {invoiceItems.map((invoiceItem) => (
             <TableRow key={invoiceItem.id}>
-              <TableCell className="min-w-52">
+              <TableCell className="min-w-0 whitespace-normal py-3">
                 <Link
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  className="block break-words font-medium text-foreground underline-offset-4 hover:underline"
                   to={invoicePath(invoiceItem.id)}
                 >
                   {invoiceItem.vendor}
                 </Link>
-                <div className="mt-1 text-xs text-muted-foreground">
+                <div className="mt-1 break-words text-xs leading-5 text-muted-foreground">
                   {invoiceItem.description}
                 </div>
               </TableCell>
               <TableCell>{formatDate(invoiceItem.invoiceDate)}</TableCell>
-              <TableCell>{categoryLabel(invoiceItem.categoryId)}</TableCell>
+              <TableCell className="truncate">
+                {categoryLabel(invoiceItem.categoryId)}
+              </TableCell>
               <TableCell>
                 <StatusBadge status={invoiceItem.reviewStatus} />
               </TableCell>
