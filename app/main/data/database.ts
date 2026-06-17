@@ -83,7 +83,7 @@ export const initializeDeductionsDatabase = ({
     manualUploadSourceId,
     sqlite,
     db,
-    data: new SqliteDeductionsData(db),
+    data: new SqliteDeductionsData(db, profileDirectory),
     close() {
       sqlite.close();
     },

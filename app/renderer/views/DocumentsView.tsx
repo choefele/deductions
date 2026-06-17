@@ -12,8 +12,11 @@ import {
   CheckCircle2,
   Clock3,
   FileText,
+  Loader2,
+  MoreHorizontal,
   Play,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 import type {
@@ -28,6 +31,13 @@ import { formatSelectionStatus } from "@/selectionStatus";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -44,7 +54,7 @@ import {
 import { formatCurrency, formatDate } from "./viewUtils";
 
 const statusLabel: Record<DocumentStatus, string> = {
-  imported: "Imported",
+  imported: "Ready to process",
   processing: "Processing",
   needs_review: "Needs review",
   processed: "Processed",
@@ -289,7 +299,7 @@ const DocumentProcessingAction = ({
 
   const isRetry = document.status === "needs_review";
   const Icon = isRetry ? RotateCcw : Play;
-  const label = isRetry ? "Retry processing" : "Process now";
+  const label = isRetry ? "Re-process" : "Process";
 
   return (
     <Tooltip>
@@ -307,6 +317,75 @@ const DocumentProcessingAction = ({
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
+  );
+};
+
+const DocumentStatusBadge = ({ status }: { status: DocumentStatus }) => (
+  <Badge
+    variant={statusVariant(status)}
+    className="inline-flex max-w-full items-center gap-1"
+  >
+    {status === "processing" ? (
+      <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+    ) : null}
+    <span className="truncate">{statusLabel[status]}</span>
+  </Badge>
+);
+
+const DocumentActionsMenu = ({
+  document,
+  isProcessingRequestPending,
+  isDeletePending,
+  onProcess,
+  onDelete,
+}: {
+  document: DocumentListSummary;
+  isProcessingRequestPending: boolean;
+  isDeletePending: boolean;
+  onProcess: (documentId: string) => void;
+  onDelete: (document: DocumentListSummary) => void;
+}) => {
+  const canProcess =
+    document.status === "imported" || document.status === "needs_review";
+  const isRetry = document.status === "needs_review";
+  const ProcessIcon = isRetry ? RotateCcw : Play;
+  const processLabel = isRetry ? "Re-process" : "Process";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="ghost"
+          aria-label={`Actions for ${document.originalFileName}`}
+          disabled={isDeletePending}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        {canProcess ? (
+          <DropdownMenuItem
+            disabled={isProcessingRequestPending}
+            onSelect={() => onProcess(document.id)}
+          >
+            <ProcessIcon className="size-4" />
+            {processLabel}
+          </DropdownMenuItem>
+        ) : null}
+        {canProcess ? <DropdownMenuSeparator /> : null}
+        <DropdownMenuItem
+          variant="destructive"
+          disabled={isDeletePending}
+          onSelect={() => onDelete(document)}
+        >
+          <Trash2 className="size-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -366,6 +445,7 @@ export const DocumentsView = () => {
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(
     null,
   );
+  const [deleteRequestId, setDeleteRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!routeLatestImport) {
@@ -413,6 +493,35 @@ export const DocumentsView = () => {
     }
   };
 
+  const handleDeleteDocument = async (document: DocumentListSummary) => {
+    const confirmed = window.confirm(
+      `Delete "${document.originalFileName}"?\n\nThis permanently deletes the document and its ${pluralize(
+        document.invoiceCount,
+        "invoice",
+      )} with ${pluralize(document.invoiceItemCount, "invoice item")}.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleteRequestId(document.id);
+
+    try {
+      await window.deductions.data.deleteDocument(document.id);
+
+      if (selectedDocumentId === document.id) {
+        const nextDocument = documents.find((item) => item.id !== document.id);
+        setSearchParams(nextDocument ? { document: nextDocument.id } : {});
+        setDetail(null);
+      }
+
+      revalidator.revalidate();
+    } finally {
+      setDeleteRequestId(null);
+    }
+  };
+
   const documentCount = documents.length;
 
   return (
@@ -429,23 +538,26 @@ export const DocumentsView = () => {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[31%] whitespace-normal">
+                <TableHead className="w-[27%] whitespace-normal">
                   File name
                 </TableHead>
-                <TableHead className="w-[15%] whitespace-normal">
+                <TableHead className="w-[13%] whitespace-normal">
                   Source
                 </TableHead>
-                <TableHead className="w-[18%] whitespace-normal">
+                <TableHead className="w-[16%] whitespace-normal">
                   Imported
                 </TableHead>
-                <TableHead className="w-[18%] whitespace-normal">
+                <TableHead className="w-[15%] whitespace-normal">
                   Status
                 </TableHead>
-                <TableHead className="w-[8%] whitespace-normal text-right">
+                <TableHead className="w-[7%] whitespace-normal text-right">
                   Items
                 </TableHead>
-                <TableHead className="w-[10%] whitespace-normal">
+                <TableHead className="w-[8%] whitespace-normal">
                   Tax year
+                </TableHead>
+                <TableHead className="w-16 whitespace-normal text-right">
+                  Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -479,17 +591,26 @@ export const DocumentsView = () => {
                         {formatDateTime(document.importedAt)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant(document.status)}>
-                          {statusLabel[document.status]}
-                        </Badge>
+                        <DocumentStatusBadge status={document.status} />
                       </TableCell>
                       <TableCell className="text-right">
                         {document.invoiceItemCount}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-normal">
                         {document.taxYears.length > 0
                           ? document.taxYears.join(", ")
                           : "None"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DocumentActionsMenu
+                          document={document}
+                          isProcessingRequestPending={
+                            processingRequestId === document.id
+                          }
+                          isDeletePending={deleteRequestId === document.id}
+                          onProcess={handleProcessDocument}
+                          onDelete={handleDeleteDocument}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -497,7 +618,7 @@ export const DocumentsView = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No imported documents.

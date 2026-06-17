@@ -20,6 +20,7 @@ export const ipcChannels = {
     getInvoiceById: 'deductions:data:get-invoice-by-id',
     listDocumentSummaries: 'deductions:data:list-document-summaries',
     getDocumentDetail: 'deductions:data:get-document-detail',
+    deleteDocument: 'deductions:data:delete-document',
     listSources: 'deductions:data:list-sources',
   },
   processing: {

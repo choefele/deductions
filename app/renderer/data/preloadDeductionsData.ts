@@ -17,5 +17,7 @@ export const preloadDeductionsData: DeductionsDataApi = {
   listDocumentSummaries: () => window.deductions.data.listDocumentSummaries(),
   getDocumentDetail: (documentId) =>
     window.deductions.data.getDocumentDetail(documentId),
+  deleteDocument: (documentId) =>
+    window.deductions.data.deleteDocument(documentId),
   listSources: () => window.deductions.data.listSources(),
 };

@@ -1,4 +1,7 @@
-import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { unlink } from 'node:fs/promises';
+import { isAbsolute, relative, resolve } from 'node:path';
+
+import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 
 import type {
   CountSummary,
@@ -203,7 +206,10 @@ const mapDocumentSummary = (row: DocumentRow): DocumentSummary => ({
 });
 
 export class SqliteDeductionsData implements DeductionsDataApi {
-  constructor(private readonly db: DeductionsDatabase) {}
+  constructor(
+    private readonly db: DeductionsDatabase,
+    private readonly profileDirectory: string,
+  ) {}
 
   async listCategories(): Promise<TaxCategory[]> {
     return taxCategories;
@@ -393,6 +399,49 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     };
   }
 
+  async deleteDocument(documentId: string): Promise<boolean> {
+    const row = this.db
+      .select({ id: documents.id, storagePath: documents.storagePath })
+      .from(documents)
+      .where(eq(documents.id, documentId))
+      .limit(1)
+      .get();
+
+    if (!row) {
+      return false;
+    }
+
+    const invoiceRows = this.db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(eq(invoices.documentId, documentId))
+      .all();
+    const invoiceIds = invoiceRows.map((invoice) => invoice.id);
+
+    this.db.transaction((tx) => {
+      if (invoiceIds.length > 0) {
+        tx.delete(invoiceItems)
+          .where(inArray(invoiceItems.invoiceId, invoiceIds))
+          .run();
+        tx.delete(invoices).where(inArray(invoices.id, invoiceIds)).run();
+      }
+
+      tx.delete(documents).where(eq(documents.id, documentId)).run();
+    });
+
+    const storedPath = this.resolveStoredDocumentPath(row.storagePath);
+
+    if (storedPath) {
+      await unlink(storedPath).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
+      });
+    }
+
+    return true;
+  }
+
   async listSources(): Promise<SourceSummary[]> {
     return this.db
       .select({
@@ -552,5 +601,21 @@ export class SqliteDeductionsData implements DeductionsDataApi {
 
   private scalarCount(row: { count: number } | undefined) {
     return Number(row?.count ?? 0);
+  }
+
+  private resolveStoredDocumentPath(storagePath: string): string | null {
+    const profileRoot = resolve(this.profileDirectory);
+    const absolutePath = resolve(profileRoot, ...storagePath.split('/'));
+    const relativePath = relative(profileRoot, absolutePath);
+
+    if (
+      relativePath.length === 0 ||
+      relativePath.startsWith('..') ||
+      isAbsolute(relativePath)
+    ) {
+      return null;
+    }
+
+    return absolutePath;
   }
 }

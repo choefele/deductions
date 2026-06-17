@@ -29,6 +29,7 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     getInvoiceById: vi.fn().mockResolvedValue(null),
     listDocumentSummaries: vi.fn().mockResolvedValue([]),
     getDocumentDetail: vi.fn().mockResolvedValue(null),
+    deleteDocument: vi.fn().mockResolvedValue(true),
     listSources: vi.fn().mockResolvedValue([]),
   },
   processing: {
@@ -56,6 +57,7 @@ describe('preloadDeductionsData', () => {
     await preloadDeductionsData.getInvoiceItemById('item-1');
     await preloadDeductionsData.listDocumentSummaries();
     await preloadDeductionsData.getDocumentDetail('doc-1');
+    await preloadDeductionsData.deleteDocument('doc-1');
 
     expect(api.data.getTaxYearSummary).toHaveBeenCalledWith(2025);
     expect(api.data.listInvoiceItemsByCategory).toHaveBeenCalledWith(
@@ -68,5 +70,6 @@ describe('preloadDeductionsData', () => {
     expect(api.data.getInvoiceItemById).toHaveBeenCalledWith('item-1');
     expect(api.data.listDocumentSummaries).toHaveBeenCalledWith();
     expect(api.data.getDocumentDetail).toHaveBeenCalledWith('doc-1');
+    expect(api.data.deleteDocument).toHaveBeenCalledWith('doc-1');
   });
 });

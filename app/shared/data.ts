@@ -175,5 +175,6 @@ export type DeductionsDataApi = {
   getInvoiceById(invoiceId: string): Promise<InvoiceDetail | null>;
   listDocumentSummaries(): Promise<DocumentListSummary[]>;
   getDocumentDetail(documentId: string): Promise<DocumentDetail | null>;
+  deleteDocument(documentId: string): Promise<boolean>;
   listSources(): Promise<SourceSummary[]>;
 };

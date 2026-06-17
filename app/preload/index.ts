@@ -57,6 +57,8 @@ const deductionsBridge: DeductionsBridgeApi = {
       ipcRenderer.invoke(ipcChannels.data.listDocumentSummaries),
     getDocumentDetail: (documentId) =>
       ipcRenderer.invoke(ipcChannels.data.getDocumentDetail, documentId),
+    deleteDocument: (documentId) =>
+      ipcRenderer.invoke(ipcChannels.data.deleteDocument, documentId),
     listSources: () => ipcRenderer.invoke(ipcChannels.data.listSources),
   },
   processing: {

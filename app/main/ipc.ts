@@ -250,6 +250,18 @@ export const registerDeductionsIpcHandlers = (
     );
   });
 
+  ipcMain.handle(ipcChannels.data.deleteDocument, (_event, ...args) => {
+    assertOneArgument(ipcChannels.data.deleteDocument, args);
+
+    return data.deleteDocument(
+      readNonEmptyString(
+        ipcChannels.data.deleteDocument,
+        args[0],
+        'document id',
+      ),
+    );
+  });
+
   ipcMain.handle(ipcChannels.data.listSources, (_event, ...args) => {
     assertNoArguments(ipcChannels.data.listSources, args);
 

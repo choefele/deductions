@@ -237,6 +237,45 @@ describe('SqliteDeductionsData', () => {
     );
   });
 
+  it('deletes a document with its invoices and invoice items', async () => {
+    const handle = openDatabase();
+    const summaries = await handle.data.listDocumentSummaries();
+    const appleDocument = summaries.find(
+      (document) =>
+        document.originalFileName === 'apple-store-2025-02-14.pdf',
+    );
+    const detail = await handle.data.getDocumentDetail(appleDocument?.id ?? '');
+    const invoiceId = detail?.invoices[0]?.id ?? '';
+    const invoiceItemId = detail?.invoices[0]?.items[0]?.id ?? '';
+
+    await expect(
+      handle.data.deleteDocument(appleDocument?.id ?? ''),
+    ).resolves.toBe(true);
+
+    await expect(
+      handle.data.getDocumentDetail(appleDocument?.id ?? ''),
+    ).resolves.toBeNull();
+    await expect(handle.data.getInvoiceById(invoiceId)).resolves.toBeNull();
+    await expect(
+      handle.data.getInvoiceItemById(invoiceItemId),
+    ).resolves.toBeNull();
+
+    const remainingSummaries = await handle.data.listDocumentSummaries();
+    const sources = await handle.data.listSources();
+
+    expect(remainingSummaries).toHaveLength(6);
+    expect(sources[0]).toEqual(
+      expect.objectContaining({
+        documentCount: 6,
+        invoiceCount: 6,
+        invoiceItemCount: 6,
+      }),
+    );
+    await expect(handle.data.deleteDocument('missing-document')).resolves.toBe(
+      false,
+    );
+  });
+
   it('keeps separate profile databases isolated', async () => {
     const seeded = openDatabase(true);
     const empty = openDatabase(false);
