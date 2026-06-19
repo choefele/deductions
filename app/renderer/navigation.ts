@@ -29,6 +29,19 @@ export const taxYearPath = (year: number) => `/years/${year}`;
 
 export const invoicePath = (invoiceId: string) => `/invoices/${invoiceId}`;
 
+export const invoiceReviewQueuePath = (
+  invoiceId: string,
+  year: number,
+  queue: ReviewQueueId,
+) => {
+  const params = new URLSearchParams({
+    year: String(year),
+    queue,
+  });
+
+  return `${invoicePath(invoiceId)}?${params.toString()}`;
+};
+
 export const documentsPath = () => '/documents';
 
 export const reviewQueuePath = (year: number, queue: ReviewQueueId) =>

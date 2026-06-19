@@ -14,6 +14,9 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     getPathForFile: vi.fn(),
     onImportCompleted: vi.fn(),
   },
+  documents: {
+    openDocumentPreview: vi.fn().mockResolvedValue({ opened: true }),
+  },
   data: {
     listCategories: vi.fn().mockResolvedValue([]),
     getAllYearsSummary: vi.fn().mockResolvedValue({
@@ -26,6 +29,7 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     listInvoiceItemsByCategory: vi.fn().mockResolvedValue([]),
     listInvoiceItemsByReviewStatus: vi.fn().mockResolvedValue([]),
     getInvoiceItemById: vi.fn().mockResolvedValue(null),
+    updateInvoiceItemReview: vi.fn().mockResolvedValue(null),
     getInvoiceById: vi.fn().mockResolvedValue(null),
     listDocumentSummaries: vi.fn().mockResolvedValue([]),
     getDocumentDetail: vi.fn().mockResolvedValue(null),
@@ -59,6 +63,20 @@ describe('preloadDeductionsData', () => {
     );
     await preloadDeductionsData.listInvoiceItemsByReviewStatus('pending');
     await preloadDeductionsData.getInvoiceItemById('item-1');
+    await preloadDeductionsData.updateInvoiceItemReview({
+      invoiceItemId: 'item-1',
+      invoice: {
+        vendor: 'Vendor',
+        invoiceDate: '2025-01-02',
+      },
+      item: {
+        description: 'Item',
+        amount: 12.34,
+        taxYear: 2025,
+        categoryId: 'work-related-expenses',
+        reviewStatus: 'accepted',
+      },
+    });
     await preloadDeductionsData.listDocumentSummaries();
     await preloadDeductionsData.getDocumentDetail('doc-1');
     await preloadDeductionsData.deleteDocument('doc-1');
@@ -72,6 +90,20 @@ describe('preloadDeductionsData', () => {
       'pending',
     );
     expect(api.data.getInvoiceItemById).toHaveBeenCalledWith('item-1');
+    expect(api.data.updateInvoiceItemReview).toHaveBeenCalledWith({
+      invoiceItemId: 'item-1',
+      invoice: {
+        vendor: 'Vendor',
+        invoiceDate: '2025-01-02',
+      },
+      item: {
+        description: 'Item',
+        amount: 12.34,
+        taxYear: 2025,
+        categoryId: 'work-related-expenses',
+        reviewStatus: 'accepted',
+      },
+    });
     expect(api.data.listDocumentSummaries).toHaveBeenCalledWith();
     expect(api.data.getDocumentDetail).toHaveBeenCalledWith('doc-1');
     expect(api.data.deleteDocument).toHaveBeenCalledWith('doc-1');

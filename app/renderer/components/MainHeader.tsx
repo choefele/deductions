@@ -72,7 +72,7 @@ export const MainHeader = () => {
         disabled={isImporting}
       >
         <FileUp />
-        {isImporting ? 'Importing...' : 'Import invoice'}
+        Import
       </Button>
       <ExportInvoicesDialog currentYear={currentYear} />
     </header>

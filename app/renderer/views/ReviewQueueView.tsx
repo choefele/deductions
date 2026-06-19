@@ -22,7 +22,10 @@ export const ReviewQueueView = () => {
           {invoiceItems.length === 1 ? '' : 's'} in this view.
         </p>
       </div>
-      <InvoiceTable invoiceItems={invoiceItems} />
+      <InvoiceTable
+        invoiceItems={invoiceItems}
+        reviewQueueContext={{ year, queue }}
+      />
     </main>
   );
 };

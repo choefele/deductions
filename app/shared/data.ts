@@ -71,6 +71,16 @@ export const documentStatuses = [
 ] as const;
 export type DocumentStatus = (typeof documentStatuses)[number];
 
+export type InvoiceSourceDocumentSummary = DocumentSummary & {
+  sourceLabel?: string;
+  sourceKind?: SourceKind;
+  status?: DocumentStatus;
+  processingStartedAt?: string;
+  processingCompletedAt?: string;
+  processorVersion?: string;
+  latestError?: string;
+};
+
 export type DocumentListSummary = DocumentSummary & {
   sourceLabel: string;
   sourceKind: SourceKind;
@@ -113,11 +123,11 @@ export type InvoiceItemSummary = {
 export type InvoiceItemDetail = InvoiceItemSummary & {
   deductionReason: string | null;
   note?: string;
-  document: DocumentSummary | null;
+  document: InvoiceSourceDocumentSummary | null;
 };
 
 export type InvoiceDetail = InvoiceHeader & {
-  document: DocumentSummary | null;
+  document: InvoiceSourceDocumentSummary | null;
   items: InvoiceItemDetail[];
 };
 
@@ -159,6 +169,24 @@ export type SourceSummary = {
   invoiceItemCount: number;
 };
 
+export type UpdateInvoiceItemReviewRequest = {
+  invoiceItemId: string;
+  invoice: {
+    vendor: string;
+    invoiceDate: string;
+    invoiceNumber?: string;
+  };
+  item: {
+    description: string;
+    amount: number;
+    taxYear: number;
+    categoryId: TaxCategoryId;
+    deductionReason?: string;
+    note?: string;
+    reviewStatus: ReviewStatus;
+  };
+};
+
 export type DeductionsDataApi = {
   listCategories(): Promise<TaxCategory[]>;
   getAllYearsSummary(): Promise<AllYearsSummary>;
@@ -172,6 +200,9 @@ export type DeductionsDataApi = {
     reviewStatus: ReviewStatus,
   ): Promise<InvoiceItemSummary[]>;
   getInvoiceItemById(invoiceItemId: string): Promise<InvoiceItemDetail | null>;
+  updateInvoiceItemReview(
+    request: UpdateInvoiceItemReviewRequest,
+  ): Promise<InvoiceItemDetail | null>;
   getInvoiceById(invoiceId: string): Promise<InvoiceDetail | null>;
   listDocumentSummaries(): Promise<DocumentListSummary[]>;
   getDocumentDetail(documentId: string): Promise<DocumentDetail | null>;

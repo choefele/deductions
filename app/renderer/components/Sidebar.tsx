@@ -156,6 +156,19 @@ export const AppSidebar = ({
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarLink
+                to={documentsPath()}
+                label="Documents"
+                icon={<FileText />}
+                isActive={locationPathname === documentsPath()}
+              />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel>Tax years</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -231,6 +244,11 @@ export const AppSidebar = ({
                                 <span>Accepted</span>
                               </Link>
                             </SidebarMenuButton>
+                            {year.counts.accepted > 0 ? (
+                              <SidebarMenuBadge className={countBadgeClassName}>
+                                {year.counts.accepted}
+                              </SidebarMenuBadge>
+                            ) : null}
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuButton
@@ -245,6 +263,11 @@ export const AppSidebar = ({
                                 <span>Rejected</span>
                               </Link>
                             </SidebarMenuButton>
+                            {year.counts.rejected > 0 ? (
+                              <SidebarMenuBadge className={countBadgeClassName}>
+                                {year.counts.rejected}
+                              </SidebarMenuBadge>
+                            ) : null}
                           </SidebarMenuSubItem>
                         </SidebarMenuSub>
                       </CollapsibleContent>
@@ -252,19 +275,6 @@ export const AppSidebar = ({
                   </Collapsible>
                 );
               })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarLink
-                to={documentsPath()}
-                label="Documents"
-                icon={<FileText />}
-                isActive={locationPathname === documentsPath()}
-              />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -12,6 +12,8 @@ export const preloadDeductionsData: DeductionsDataApi = {
     window.deductions.data.listInvoiceItemsByReviewStatus(reviewStatus),
   getInvoiceItemById: (invoiceItemId) =>
     window.deductions.data.getInvoiceItemById(invoiceItemId),
+  updateInvoiceItemReview: (request) =>
+    window.deductions.data.updateInvoiceItemReview(request),
   getInvoiceById: (invoiceId) =>
     window.deductions.data.getInvoiceById(invoiceId),
   listDocumentSummaries: () => window.deductions.data.listDocumentSummaries(),

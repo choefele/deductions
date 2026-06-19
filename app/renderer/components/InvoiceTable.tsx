@@ -1,7 +1,12 @@
 import { Link } from 'react-router';
 
 import type { InvoiceItemSummary } from '../../shared/data';
-import { categoryLabel, invoicePath } from '@/navigation';
+import {
+  categoryLabel,
+  invoicePath,
+  invoiceReviewQueuePath,
+  type ReviewQueueId,
+} from '@/navigation';
 import { StatusBadge } from './StatusBadge';
 import {
   Table,
@@ -27,8 +32,13 @@ const formatDate = (date: string) =>
 
 export const InvoiceTable = ({
   invoiceItems,
+  reviewQueueContext,
 }: {
   invoiceItems: InvoiceItemSummary[];
+  reviewQueueContext?: {
+    year: number;
+    queue: ReviewQueueId;
+  };
 }) => {
   if (invoiceItems.length === 0) {
     return (
@@ -66,7 +76,15 @@ export const InvoiceTable = ({
               <TableCell className="min-w-0 whitespace-normal py-3">
                 <Link
                   className="block break-words font-medium text-foreground underline-offset-4 hover:underline"
-                  to={invoicePath(invoiceItem.id)}
+                  to={
+                    reviewQueueContext
+                      ? invoiceReviewQueuePath(
+                          invoiceItem.id,
+                          reviewQueueContext.year,
+                          reviewQueueContext.queue,
+                        )
+                      : invoicePath(invoiceItem.id)
+                  }
                 >
                   {invoiceItem.vendor}
                 </Link>

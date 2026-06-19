@@ -1,4 +1,5 @@
 import type { DeductionsDataApi } from './data';
+import type { DeductionsDocumentsApi } from './documents';
 import type { DeductionsExportsApi } from './exports';
 import type { DeductionsImportsApi } from './imports';
 import type { DeductionsProcessingApi } from './processing';
@@ -18,11 +19,15 @@ export const ipcChannels = {
     listInvoiceItemsByReviewStatus:
       'deductions:data:list-invoice-items-by-review-status',
     getInvoiceItemById: 'deductions:data:get-invoice-item-by-id',
+    updateInvoiceItemReview: 'deductions:data:update-invoice-item-review',
     getInvoiceById: 'deductions:data:get-invoice-by-id',
     listDocumentSummaries: 'deductions:data:list-document-summaries',
     getDocumentDetail: 'deductions:data:get-document-detail',
     deleteDocument: 'deductions:data:delete-document',
     listSources: 'deductions:data:list-sources',
+  },
+  documents: {
+    openDocumentPreview: 'deductions:documents:open-document-preview',
   },
   processing: {
     processDocument: 'deductions:processing:process-document',
@@ -41,6 +46,7 @@ export type DeductionsBridgeApi = {
   };
   imports: DeductionsImportsApi;
   data: DeductionsDataApi;
+  documents: DeductionsDocumentsApi;
   processing: DeductionsProcessingApi;
   exports: DeductionsExportsApi;
 };

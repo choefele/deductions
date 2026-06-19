@@ -5,6 +5,7 @@ import {
   getBreadcrumbs,
   getSelectionForPath,
   invoicePath,
+  invoiceReviewQueuePath,
   reviewQueuePath,
   taxYearPath,
 } from '../../../app/renderer/navigation';
@@ -17,6 +18,9 @@ describe('navigation helpers', () => {
       '/years/2025/categories/work-related-expenses',
     );
     expect(invoicePath('inv-1')).toBe('/invoices/inv-1');
+    expect(invoiceReviewQueuePath('inv-1', 2025, 'pending')).toBe(
+      '/invoices/inv-1?year=2025&queue=pending',
+    );
     expect(reviewQueuePath(2025, 'pending')).toBe('/years/2025/review');
     expect(reviewQueuePath(2025, 'accepted')).toBe('/years/2025/accepted');
   });

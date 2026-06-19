@@ -16,7 +16,12 @@ import {
   selectImportFiles,
   selectSingleExportZipPath,
 } from './dialogs';
+import type { DocumentPreviewOpener } from './documents/documentPreviewOpener';
 import type { InvoiceExporter } from './exports/invoiceExporter';
+import {
+  normalizeUpdateInvoiceItemReviewRequest,
+  toUpdateInvoiceItemReviewRequest,
+} from './data/reviewUpdateValidation';
 
 const minimumTaxYear = 1900;
 const maximumTaxYear = 2200;
@@ -152,6 +157,7 @@ export const registerDeductionsIpcHandlers = (
   importFiles?: ImportFiles,
   processDocument?: ProcessDocument,
   exporter?: InvoiceExporter,
+  documentPreviewOpener?: DocumentPreviewOpener,
 ) => {
   ipcMain.handle(ipcChannels.imports.importFiles, async (event, ...args) => {
     assertNoArguments(ipcChannels.imports.importFiles, args);
@@ -298,6 +304,22 @@ export const registerDeductionsIpcHandlers = (
     );
   });
 
+  ipcMain.handle(
+    ipcChannels.data.updateInvoiceItemReview,
+    (_event, ...args) => {
+      assertOneArgument(ipcChannels.data.updateInvoiceItemReview, args);
+
+      return data.updateInvoiceItemReview(
+        toUpdateInvoiceItemReviewRequest(
+          normalizeUpdateInvoiceItemReviewRequest(
+            ipcChannels.data.updateInvoiceItemReview,
+            args[0],
+          ),
+        ),
+      );
+    },
+  );
+
   ipcMain.handle(ipcChannels.data.getInvoiceById, (_event, ...args) => {
     assertOneArgument(ipcChannels.data.getInvoiceById, args);
 
@@ -345,6 +367,25 @@ export const registerDeductionsIpcHandlers = (
 
     return data.listSources();
   });
+
+  ipcMain.handle(
+    ipcChannels.documents.openDocumentPreview,
+    (_event, ...args) => {
+      assertOneArgument(ipcChannels.documents.openDocumentPreview, args);
+
+      if (!documentPreviewOpener) {
+        throw new Error('Document preview is not configured.');
+      }
+
+      return documentPreviewOpener.openDocumentPreview(
+        readNonEmptyString(
+          ipcChannels.documents.openDocumentPreview,
+          args[0],
+          'document id',
+        ),
+      );
+    },
+  );
 
   ipcMain.handle(ipcChannels.processing.processDocument, (_event, ...args) => {
     assertOneArgument(ipcChannels.processing.processDocument, args);

@@ -38,7 +38,7 @@ export const SourcesView = () => {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {source.kind === 'manual-upload'
-                ? 'Use Import invoice in the header to select files.'
+                ? 'Use Import in the header to select files.'
                 : 'Connected source setup is deferred.'}
             </CardContent>
           </Card>

@@ -28,7 +28,7 @@ test('opens the Deductions shell and exposes the preload API', async () => {
         .first(),
     ).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(
-      page.getByRole('button', { name: 'Import invoice' }),
+      page.getByRole('button', { name: 'Import' }),
     ).toBeVisible();
     await page.locator('header').getByRole('button', { name: 'Export' }).click();
     await expect(
@@ -99,8 +99,53 @@ test('opens the Deductions shell and exposes the preload API', async () => {
       page.getByRole('heading', { name: 'Work-related expenses' }),
     ).toBeVisible();
 
-    await page.getByRole('link', { name: 'Apple Store' }).click();
+    await sidebar.getByRole('link', { name: 'Review' }).click();
+    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
+    await expect(
+      page.getByText('2025 · 2 items in this view.'),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Techniker Krankenkasse' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Techniker Krankenkasse' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Accept' }).click();
     await expect(page.getByRole('heading', { name: 'Apple Store' })).toBeVisible();
+    await expect(page.getByLabel('Review status')).toHaveValue('pending');
+
+    await page.getByRole('button', { name: 'Reject' }).click();
+    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
+    await expect(
+      page.getByText('2025 · 0 items in this view.'),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Apple Store' })).toHaveCount(0);
+    await sidebar.getByRole('link', { name: 'Accepted' }).click();
+    await expect(page.getByRole('heading', { name: 'Accepted' })).toBeVisible();
+    await expect(
+      page.getByText('2025 · 3 items in this view.'),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Techniker Krankenkasse' }),
+    ).toBeVisible();
+    await sidebar.getByRole('link', { name: 'Rejected' }).click();
+    await expect(page.getByRole('heading', { name: 'Rejected' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Apple Store' })).toBeVisible();
+
+    await sidebar.getByRole('link', { name: 'Accepted' }).click();
+    await page.getByRole('link', { name: 'Techniker Krankenkasse' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Techniker Krankenkasse' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'CleanHome GmbH' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Previous' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Techniker Krankenkasse' }),
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
     await expect(page.locator('[data-slot="sidebar"]')).toHaveAttribute(
@@ -120,6 +165,9 @@ test('opens the Deductions shell and exposes the preload API', async () => {
         typeof window.deductions.data.listTaxYears === 'function',
       hasListDocumentSummaries:
         typeof window.deductions.data.listDocumentSummaries === 'function',
+      hasDocumentsApi: typeof window.deductions.documents === 'object',
+      hasOpenDocumentPreview:
+        typeof window.deductions.documents.openDocumentPreview === 'function',
       hasExportsApi: typeof window.deductions.exports === 'object',
       hasListExportYearOptions:
         typeof window.deductions.exports.listExportYearOptions === 'function',
@@ -141,6 +189,8 @@ test('opens the Deductions shell and exposes the preload API', async () => {
       hasDataApi: true,
       hasListTaxYears: true,
       hasListDocumentSummaries: true,
+      hasDocumentsApi: true,
+      hasOpenDocumentPreview: true,
       hasExportsApi: true,
       hasListExportYearOptions: true,
       hasExportInvoices: true,

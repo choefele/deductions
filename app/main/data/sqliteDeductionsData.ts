@@ -13,6 +13,7 @@ import type {
   DocumentStatus,
   InvoiceDetail,
   InvoiceHeader,
+  InvoiceSourceDocumentSummary,
   InvoiceItemDetail,
   InvoiceItemSummary,
   ReviewStatus,
@@ -21,8 +22,10 @@ import type {
   TaxCategory,
   TaxCategoryId,
   TaxYearSummary,
+  UpdateInvoiceItemReviewRequest,
 } from '../../shared/data';
 import { taxCategories } from '../../shared/data';
+import { normalizeUpdateInvoiceItemReviewRequest } from './reviewUpdateValidation';
 import { documents, invoiceItems, invoices, sources } from './schema';
 import type { DeductionsDatabase } from './types';
 
@@ -56,6 +59,13 @@ type ItemDetailRow = ItemSummaryRow & {
   mimeType: string | null;
   sha256: string | null;
   importedAt: number | null;
+  sourceKind: SourceKind | null;
+  sourceLabel: string | null;
+  status: DocumentStatus | null;
+  processingStartedAt: number | null;
+  processingCompletedAt: number | null;
+  processingError: string | null;
+  processorVersion: string | null;
 };
 
 type InvoiceHeaderRow = {
@@ -71,6 +81,13 @@ type InvoiceHeaderRow = {
   mimeType: string | null;
   sha256: string | null;
   importedAt: number | null;
+  sourceKind: SourceKind | null;
+  sourceLabel: string | null;
+  status: DocumentStatus | null;
+  processingStartedAt: number | null;
+  processingCompletedAt: number | null;
+  processingError: string | null;
+  processorVersion: string | null;
 };
 
 type SourceSummaryRow = Omit<SourceSummary, 'kind'> & {
@@ -120,6 +137,13 @@ const itemDetailSelection = {
   mimeType: documents.mimeType,
   sha256: documents.sha256,
   importedAt: documents.importedAt,
+  sourceKind: sources.kind,
+  sourceLabel: sources.label,
+  status: documents.status,
+  processingStartedAt: documents.processingStartedAt,
+  processingCompletedAt: documents.processingCompletedAt,
+  processingError: documents.processingError,
+  processorVersion: documents.processorVersion,
 };
 
 const invoiceHeaderSelection = {
@@ -135,6 +159,13 @@ const invoiceHeaderSelection = {
   mimeType: documents.mimeType,
   sha256: documents.sha256,
   importedAt: documents.importedAt,
+  sourceKind: sources.kind,
+  sourceLabel: sources.label,
+  status: documents.status,
+  processingStartedAt: documents.processingStartedAt,
+  processingCompletedAt: documents.processingCompletedAt,
+  processingError: documents.processingError,
+  processorVersion: documents.processorVersion,
 };
 
 const emptyCounts = (): CountSummary => ({
@@ -147,7 +178,7 @@ const toOptional = (value: string | null) => value ?? undefined;
 
 const toDocumentSummary = (
   row: ItemDetailRow | InvoiceHeaderRow,
-): DocumentSummary | null => {
+): InvoiceSourceDocumentSummary | null => {
   if (!row.documentSummaryId) {
     return null;
   }
@@ -160,6 +191,17 @@ const toDocumentSummary = (
     mimeType: row.mimeType ?? '',
     sha256: row.sha256 ?? '',
     importedAt: new Date(row.importedAt ?? 0).toISOString(),
+    sourceKind: row.sourceKind ?? undefined,
+    sourceLabel: row.sourceLabel ?? undefined,
+    status: row.status ?? undefined,
+    processingStartedAt: row.processingStartedAt
+      ? new Date(row.processingStartedAt).toISOString()
+      : undefined,
+    processingCompletedAt: row.processingCompletedAt
+      ? new Date(row.processingCompletedAt).toISOString()
+      : undefined,
+    processorVersion: row.processorVersion ?? undefined,
+    latestError: row.processingError ?? undefined,
   };
 };
 
@@ -293,6 +335,7 @@ export class SqliteDeductionsData implements DeductionsDataApi {
       .from(invoiceItems)
       .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
       .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .leftJoin(sources, eq(sources.id, documents.sourceId))
       .where(eq(invoiceItems.id, invoiceItemId))
       .limit(1)
       .get() as ItemDetailRow | undefined;
@@ -300,11 +343,68 @@ export class SqliteDeductionsData implements DeductionsDataApi {
     return row ? mapItemDetail(row) : null;
   }
 
+  async updateInvoiceItemReview(
+    request: UpdateInvoiceItemReviewRequest,
+  ): Promise<InvoiceItemDetail | null> {
+    const update = normalizeUpdateInvoiceItemReviewRequest(
+      'deductions:data:update-invoice-item-review',
+      request,
+    );
+    const updated = this.db.transaction((tx) => {
+      const existing = tx
+        .select({ invoiceId: invoiceItems.invoiceId })
+        .from(invoiceItems)
+        .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
+        .where(eq(invoiceItems.id, update.invoiceItemId))
+        .limit(1)
+        .get();
+
+      if (!existing) {
+        return false;
+      }
+
+      const now = Date.now();
+      const itemUpdate: Partial<typeof invoiceItems.$inferInsert> = {
+        description: update.item.description,
+        amountCents: update.item.amountCents,
+        taxYear: update.item.taxYear,
+        categoryId: update.item.categoryId,
+        reviewStatus: update.item.reviewStatus,
+        note: update.item.note,
+        updatedAt: now,
+      };
+
+      if (update.item.deductionReason !== undefined) {
+        itemUpdate.deductionReason = update.item.deductionReason;
+      }
+
+      tx.update(invoices)
+        .set({
+          vendor: update.invoice.vendor,
+          invoiceDate: update.invoice.invoiceDate,
+          invoiceNumber: update.invoice.invoiceNumber,
+          updatedAt: now,
+        })
+        .where(eq(invoices.id, existing.invoiceId))
+        .run();
+
+      tx.update(invoiceItems)
+        .set(itemUpdate)
+        .where(eq(invoiceItems.id, update.invoiceItemId))
+        .run();
+
+      return true;
+    });
+
+    return updated ? this.getInvoiceItemById(update.invoiceItemId) : null;
+  }
+
   async getInvoiceById(invoiceId: string): Promise<InvoiceDetail | null> {
     const row = this.db
       .select(invoiceHeaderSelection)
       .from(invoices)
       .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .leftJoin(sources, eq(sources.id, documents.sourceId))
       .where(eq(invoices.id, invoiceId))
       .limit(1)
       .get() as InvoiceHeaderRow | undefined;
@@ -318,6 +418,7 @@ export class SqliteDeductionsData implements DeductionsDataApi {
       .from(invoiceItems)
       .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
       .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .leftJoin(sources, eq(sources.id, documents.sourceId))
       .where(eq(invoices.id, invoiceId))
       .orderBy(asc(invoiceItems.sortOrder), asc(invoiceItems.createdAt))
       .all() as ItemDetailRow[];
@@ -387,6 +488,7 @@ export class SqliteDeductionsData implements DeductionsDataApi {
       .select(invoiceHeaderSelection)
       .from(invoices)
       .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .leftJoin(sources, eq(sources.id, documents.sourceId))
       .where(eq(invoices.documentId, documentId))
       .orderBy(desc(invoices.invoiceDate), asc(invoices.createdAt))
       .all() as InvoiceHeaderRow[];
@@ -588,6 +690,7 @@ export class SqliteDeductionsData implements DeductionsDataApi {
       .from(invoiceItems)
       .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
       .leftJoin(documents, eq(documents.id, invoices.documentId))
+      .leftJoin(sources, eq(sources.id, documents.sourceId))
       .where(eq(invoices.id, row.id))
       .orderBy(asc(invoiceItems.sortOrder), asc(invoiceItems.createdAt))
       .all() as ItemDetailRow[];

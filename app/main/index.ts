@@ -11,6 +11,7 @@ import type { ImportFiles, ProcessDocument } from './ipc';
 import { registerDeductionsIpcHandlers } from './ipc';
 import { buildMenu } from './menu';
 import { ipcChannels } from '../shared/ipc';
+import { DocumentPreviewOpener } from './documents/documentPreviewOpener';
 import { InvoiceExporter } from './exports/invoiceExporter';
 import { AiSdkInvoiceParser } from './processing/aiSdkInvoiceParser';
 import { resolveAiProviderSettings } from './processing/aiProviderSettings';
@@ -99,6 +100,11 @@ app.whenReady()
       importFiles,
       processDocument,
       new InvoiceExporter(databaseHandle.db, databaseHandle.profileDirectory),
+      new DocumentPreviewOpener(
+        databaseHandle.db,
+        databaseHandle.profileDirectory,
+        app.getPath('temp'),
+      ),
     );
     isDataInitialized = true;
     buildMenu(importFiles);

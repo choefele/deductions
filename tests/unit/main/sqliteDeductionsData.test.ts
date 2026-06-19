@@ -155,7 +155,103 @@ describe('SqliteDeductionsData', () => {
           'Laptop purchase may be work-related, but private use should be clarified.',
         document: expect.objectContaining({
           storagePath: expect.stringMatching(/^documents\/2025\/.+\.pdf$/),
+          sourceLabel: 'Manual upload',
+          status: 'needs_review',
         }),
+      }),
+    );
+  });
+
+  it('updates invoice and item review fields in one persisted review save', async () => {
+    const handle = openDatabase();
+    const items = await handle.data.listInvoiceItemsByCategory(
+      2025,
+      'work-related-expenses',
+    );
+    const appleItem = items.find((item) => item.vendor === 'Apple Store');
+
+    expect(appleItem).toBeDefined();
+
+    const updated = await handle.data.updateInvoiceItemReview({
+      invoiceItemId: appleItem?.id ?? '',
+      invoice: {
+        vendor: 'Apple Retail Germany',
+        invoiceDate: '2025-02-15',
+        invoiceNumber: 'APL-UPDATED',
+      },
+      item: {
+        description: 'MacBook Pro and adapter',
+        amount: 1400.25,
+        taxYear: 2025,
+        categoryId: 'special-expenses',
+        deductionReason: 'Manually reviewed context.',
+        note: 'Accepted after checking the source invoice.',
+        reviewStatus: 'accepted',
+      },
+    });
+
+    expect(updated).toEqual(
+      expect.objectContaining({
+        id: appleItem?.id,
+        invoiceId: appleItem?.invoiceId,
+        vendor: 'Apple Retail Germany',
+        invoiceDate: '2025-02-15',
+        invoiceNumber: 'APL-UPDATED',
+        description: 'MacBook Pro and adapter',
+        amount: 1400.25,
+        taxYear: 2025,
+        categoryId: 'special-expenses',
+        deductionReason: 'Manually reviewed context.',
+        note: 'Accepted after checking the source invoice.',
+        reviewStatus: 'accepted',
+      }),
+    );
+    await expect(
+      handle.data.getInvoiceItemById(appleItem?.id ?? ''),
+    ).resolves.toEqual(updated);
+    await expect(handle.data.getAllYearsSummary()).resolves.toEqual(
+      expect.objectContaining({
+        counts: {
+          pending: 3,
+          accepted: 4,
+          rejected: 1,
+        },
+      }),
+    );
+
+    const remainingWorkItems = await handle.data.listInvoiceItemsByCategory(
+      2025,
+      'work-related-expenses',
+    );
+    expect(remainingWorkItems.map((item) => item.vendor)).toEqual(['Amazon']);
+  });
+
+  it('rejects invalid review update values before persistence', async () => {
+    const handle = openDatabase();
+    const pending = await handle.data.listInvoiceItemsByReviewStatus('pending');
+    const item = pending[0];
+
+    await expect(
+      handle.data.updateInvoiceItemReview({
+        invoiceItemId: item.id,
+        invoice: {
+          vendor: '',
+          invoiceDate: '2025-02-15',
+        },
+        item: {
+          description: item.description,
+          amount: item.amount,
+          taxYear: item.taxYear,
+          categoryId: item.categoryId,
+          reviewStatus: 'accepted',
+        },
+      }),
+    ).rejects.toThrow(/invalid vendor/);
+
+    await expect(handle.data.getInvoiceItemById(item.id)).resolves.toEqual(
+      expect.objectContaining({
+        vendor: item.vendor,
+        reviewStatus: 'pending',
       }),
     );
   });

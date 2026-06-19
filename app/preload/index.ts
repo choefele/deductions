@@ -51,6 +51,8 @@ const deductionsBridge: DeductionsBridgeApi = {
       ),
     getInvoiceItemById: (invoiceItemId) =>
       ipcRenderer.invoke(ipcChannels.data.getInvoiceItemById, invoiceItemId),
+    updateInvoiceItemReview: (request) =>
+      ipcRenderer.invoke(ipcChannels.data.updateInvoiceItemReview, request),
     getInvoiceById: (invoiceId) =>
       ipcRenderer.invoke(ipcChannels.data.getInvoiceById, invoiceId),
     listDocumentSummaries: () =>
@@ -60,6 +62,10 @@ const deductionsBridge: DeductionsBridgeApi = {
     deleteDocument: (documentId) =>
       ipcRenderer.invoke(ipcChannels.data.deleteDocument, documentId),
     listSources: () => ipcRenderer.invoke(ipcChannels.data.listSources),
+  },
+  documents: {
+    openDocumentPreview: (documentId) =>
+      ipcRenderer.invoke(ipcChannels.documents.openDocumentPreview, documentId),
   },
   processing: {
     processDocument: (documentId) =>
