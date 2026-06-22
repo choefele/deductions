@@ -1,4 +1,4 @@
-import type { KeyboardEventHandler, ReactNode } from 'react';
+import type { KeyboardEventHandler, MouseEventHandler, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
 import { cn } from '@/lib/utils';
@@ -10,6 +10,12 @@ type ReviewTableRowProps = {
   className?: string;
 };
 
+const isInteractiveTarget = (target: EventTarget | null) =>
+  target instanceof Element &&
+  target.closest(
+    'a, button, input, select, textarea, [contenteditable="true"], [role="menuitem"]',
+  ) !== null;
+
 export const ReviewTableRow = ({
   to,
   children,
@@ -18,8 +24,18 @@ export const ReviewTableRow = ({
   const navigate = useNavigate();
 
   const handleKeyDown: KeyboardEventHandler<HTMLTableRowElement> = (event) => {
+    if (isInteractiveTarget(event.target)) {
+      return;
+    }
+
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
+      navigate(to);
+    }
+  };
+
+  const handleClick: MouseEventHandler<HTMLTableRowElement> = (event) => {
+    if (!isInteractiveTarget(event.target)) {
       navigate(to);
     }
   };
@@ -31,7 +47,7 @@ export const ReviewTableRow = ({
         'cursor-pointer focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         className,
       )}
-      onClick={() => navigate(to)}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
       {children}
