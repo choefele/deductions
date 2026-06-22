@@ -41,6 +41,20 @@ Start the app in development:
 npm start
 ```
 
+### AI Features with LM Studio
+
+AI-assisted document processing uses a local LM Studio server. Before starting
+Deductions, load `gemma-4-e4b-it-mlx` in LM Studio and start its local server.
+With no additional configuration, `npm start` uses this model at
+`http://localhost:1234/v1`.
+
+To use another model, load that model in LM Studio and override the default for
+the command you run:
+
+```bash
+DEDUCTIONS_AI_MODEL_ID=your-model-id npm start
+```
+
 Run the standard checks during development:
 
 ```bash
