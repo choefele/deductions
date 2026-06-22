@@ -22,6 +22,7 @@ const createWindowApi = (): DeductionsBridgeApi => ({
     getAllYearsSummary: vi.fn().mockResolvedValue({
       years: [],
       counts: { pending: 0, accepted: 0, rejected: 0 },
+      amounts: { pending: 0, accepted: 0 },
       recentInvoiceItems: [],
     }),
     listTaxYears: vi.fn().mockResolvedValue([]),

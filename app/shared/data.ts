@@ -141,6 +141,11 @@ export type CountSummary = {
   rejected: number;
 };
 
+export type AmountSummary = {
+  pending: number;
+  accepted: number;
+};
+
 export type CategorySummary = {
   category: TaxCategory;
   total: number;
@@ -151,12 +156,14 @@ export type TaxYearSummary = {
   year: number;
   total: number;
   counts: CountSummary;
+  amounts: AmountSummary;
   categories: CategorySummary[];
 };
 
 export type AllYearsSummary = {
   years: TaxYearSummary[];
   counts: CountSummary;
+  amounts: AmountSummary;
   recentInvoiceItems: InvoiceItemSummary[];
 };
 

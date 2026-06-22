@@ -16,6 +16,11 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     await expect(
       page.getByRole('heading', { name: 'All years' }),
     ).toBeVisible();
+    await expect(page.getByText('Money', { exact: true })).toBeVisible();
+    await expect(page.getByText('By tax year', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Review: 2 items for 2025' }),
+    ).toBeVisible();
     const sidebar = page.getByRole('complementary', {
       name: 'Primary navigation',
     });
@@ -90,16 +95,10 @@ test('opens the Deductions shell and exposes the preload API', async () => {
     await expect(
       page.getByRole('heading', { name: '2025 overview' }),
     ).toBeVisible();
-
-    await page
-      .getByRole('link', { name: /Work-related expenses/ })
-      .first()
-      .click();
     await expect(
-      page.getByRole('heading', { name: 'Work-related expenses' }),
+      page.getByText('Items by status', { exact: true }),
     ).toBeVisible();
-
-    await sidebar.getByRole('link', { name: 'Review' }).click();
+    await page.getByRole('link', { name: 'Review: 2 items for 2025' }).click();
     await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
     await expect(
       page.getByText('2025 · 2 items in this view.'),

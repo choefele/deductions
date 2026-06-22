@@ -1,4 +1,5 @@
 export type {
+  AmountSummary,
   AllYearsSummary,
   CategorySummary,
   CountSummary,

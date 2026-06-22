@@ -90,6 +90,22 @@ describe('SqliteDeductionsData', () => {
       accepted: 3,
       rejected: 1,
     });
+    expect(summary.amounts).toEqual({
+      pending: 2273.5,
+      accepted: 668.99,
+    });
+    expect(summary.years).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          year: 2025,
+          amounts: { pending: 1839, accepted: 429.99 },
+        }),
+        expect.objectContaining({
+          year: 2024,
+          amounts: { pending: 434.5, accepted: 239 },
+        }),
+      ]),
+    );
     expect(summary.recentInvoiceItems).toHaveLength(5);
     expect(summary.recentInvoiceItems[0]).toEqual(
       expect.objectContaining({
@@ -215,6 +231,10 @@ describe('SqliteDeductionsData', () => {
           pending: 3,
           accepted: 4,
           rejected: 1,
+        },
+        amounts: {
+          pending: 974.5,
+          accepted: 2069.24,
         },
       }),
     );

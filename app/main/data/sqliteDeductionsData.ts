@@ -1,10 +1,9 @@
 import { unlink } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 
-import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type {
-  CountSummary,
   Currency,
   DeductionsDataApi,
   DocumentDetail,
@@ -26,13 +25,9 @@ import type {
 } from '../../shared/data';
 import { taxCategories } from '../../shared/data';
 import { normalizeUpdateInvoiceItemReviewRequest } from './reviewUpdateValidation';
+import { getReviewSummary } from './reviewSummary';
 import { documents, invoiceItems, invoices, sources } from './schema';
 import type { DeductionsDatabase } from './types';
-
-type CountRow = {
-  reviewStatus: ReviewStatus;
-  count: number;
-};
 
 type ItemSummaryRow = {
   id: string;
@@ -168,12 +163,6 @@ const invoiceHeaderSelection = {
   processorVersion: documents.processorVersion,
 };
 
-const emptyCounts = (): CountSummary => ({
-  pending: 0,
-  accepted: 0,
-  rejected: 0,
-});
-
 const toOptional = (value: string | null) => value ?? undefined;
 
 const toDocumentSummary = (
@@ -259,10 +248,11 @@ export class SqliteDeductionsData implements DeductionsDataApi {
 
   async getAllYearsSummary() {
     const years = await this.listTaxYears();
+    const summary = getReviewSummary(this.db);
 
     return {
       years,
-      counts: this.countSummary(),
+      ...summary,
       recentInvoiceItems: this.listRecentItemSummaries(),
     };
   }
@@ -565,7 +555,8 @@ export class SqliteDeductionsData implements DeductionsDataApi {
 
   private buildTaxYearSummary(year: number): TaxYearSummary {
     const categories = taxCategories.map((category) => {
-      const counts = this.countSummary(
+      const { counts } = getReviewSummary(
+        this.db,
         and(
           eq(invoiceItems.taxYear, year),
           eq(invoiceItems.categoryId, category.id),
@@ -582,34 +573,18 @@ export class SqliteDeductionsData implements DeductionsDataApi {
         counts,
       };
     });
-    const counts = this.countSummary(eq(invoiceItems.taxYear, year));
+    const { counts, amounts } = getReviewSummary(
+      this.db,
+      eq(invoiceItems.taxYear, year),
+    );
 
     return {
       year,
       total: counts.pending + counts.accepted + counts.rejected,
       counts,
+      amounts,
       categories,
     };
-  }
-
-  private countSummary(where?: SQL): CountSummary {
-    const counts = emptyCounts();
-    const statusRows = this.db
-      .select({
-        reviewStatus: invoiceItems.reviewStatus,
-        count: sql<number>`count(*)`,
-      })
-      .from(invoiceItems)
-      .innerJoin(invoices, eq(invoices.id, invoiceItems.invoiceId))
-      .where(where)
-      .groupBy(invoiceItems.reviewStatus)
-      .all() as CountRow[];
-
-    statusRows.forEach((row) => {
-      counts[row.reviewStatus] = row.count;
-    });
-
-    return counts;
   }
 
   private listRecentItemSummaries(): InvoiceItemSummary[] {

@@ -329,31 +329,51 @@ describe('InvoiceExporter', () => {
     ]);
     expect(overviewSheet?.getRow(7).values).toEqual([
       undefined,
-      'Included items',
-      undefined,
-      2,
-      1348,
+      'Accepted total',
+      'Accepted items currently included in the dashboard amount.',
+      1,
+      1299,
       'EUR',
     ]);
     expect(overviewSheet?.getRow(8).values).toEqual([
       undefined,
-      'In review items',
+      'Accepted + in-review total',
+      'Includes 49.00 EUR from 1 item(s) still in review.',
+      2,
+      1348,
+      'EUR',
+    ]);
+    expect(overviewSheet?.getRow(10).values).toEqual([
       undefined,
+      'Items by status',
+      undefined,
+      'Item count',
+      'Amount',
+      'Currency',
+    ]);
+    expect(overviewSheet?.getRow(11).values).toEqual([
+      undefined,
+      'Review',
+      'Still needs a decision before filing.',
       1,
       49,
       'EUR',
     ]);
-    expect(overviewSheet?.getRow(8).getCell(1).fill).toMatchObject({
+    expect(overviewSheet?.getRow(12).values).toEqual([
+      undefined,
+      'Accepted',
+      'Included in the accepted total.',
+      1,
+      1299,
+      'EUR',
+    ]);
+    expect(overviewSheet?.getColumn(1).values).not.toContain('Rejected');
+    expect(overviewSheet?.getRow(11).getCell(1).fill).toMatchObject({
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFFFF3CD' },
     });
-    expect(overviewSheet?.getRow(11).values).toEqual([
-      undefined,
-      'Review',
-      'Rows marked "In review" still need confirmation before filing.',
-    ]);
-    expect(overviewSheet?.getRow(12).values).toEqual([
+    expect(overviewSheet?.getRow(15).values).toEqual([
       undefined,
       'Proof files',
       'Document file names correspond to the "Proof file" column in the Invoices sheet.',

@@ -21,6 +21,10 @@ import type {
 } from '../../shared/exports';
 import type { Currency, ReviewStatus, TaxCategoryId } from '../../shared/data';
 import { taxCategories } from '../../shared/data';
+import {
+  getReviewSummary,
+  type ReviewSummary,
+} from '../data/reviewSummary';
 import { documents, invoiceItems, invoices } from '../data/schema';
 import type { DeductionsDatabase } from '../data/types';
 
@@ -62,10 +66,7 @@ type ExportIssue = {
 type ExportSummary = {
   year: number;
   createdAt: string;
-  includedItemCount: number;
-  includedAmount: number;
-  inReviewItemCount: number;
-  inReviewAmount: number;
+  reviewSummary: ReviewSummary;
 };
 
 export type ExportTarget =
@@ -210,20 +211,13 @@ const pathExists = async (filePath: string) => {
 
 const buildExportSummary = (
   year: number,
-  rows: ExportRow[],
+  reviewSummary: ReviewSummary,
   createdAt = new Date(),
 ): ExportSummary => {
-  const inReviewRows = rows.filter((row) => row.reviewStatus === 'pending');
-
   return {
     year,
     createdAt: createdAt.toISOString(),
-    includedItemCount: rows.length,
-    includedAmount:
-      rows.reduce((sum, row) => sum + row.amountCents, 0) / 100,
-    inReviewItemCount: inReviewRows.length,
-    inReviewAmount:
-      inReviewRows.reduce((sum, row) => sum + row.amountCents, 0) / 100,
+    reviewSummary,
   };
 };
 
@@ -256,6 +250,10 @@ const buildWorkbook = async (
   overviewSheet.getCell('A1').alignment = { vertical: 'middle' };
   overviewSheet.getRow(1).height = 24;
 
+  const { counts, amounts } = summary.reviewSummary;
+  const includingReviewItemCount = counts.accepted + counts.pending;
+  const includingReviewAmount = amounts.accepted + amounts.pending;
+
   overviewSheet.addRows([
     ['Created at', summary.createdAt],
     ['Tax year', summary.year],
@@ -266,25 +264,37 @@ const buildWorkbook = async (
     [],
     ['Summary', undefined, 'Item count', 'Amount', 'Currency'],
     [
-      'Included items',
-      undefined,
-      summary.includedItemCount,
-      summary.includedAmount,
+      'Accepted total',
+      'Accepted items currently included in the dashboard amount.',
+      counts.accepted,
+      amounts.accepted,
       'EUR',
     ],
     [
-      'In review items',
-      undefined,
-      summary.inReviewItemCount,
-      summary.inReviewAmount,
+      'Accepted + in-review total',
+      `Includes ${amounts.pending.toFixed(2)} EUR from ${counts.pending} item(s) still in review.`,
+      includingReviewItemCount,
+      includingReviewAmount,
+      'EUR',
+    ],
+    [],
+    ['Items by status', undefined, 'Item count', 'Amount', 'Currency'],
+    [
+      'Review',
+      'Still needs a decision before filing.',
+      counts.pending,
+      amounts.pending,
+      'EUR',
+    ],
+    [
+      'Accepted',
+      'Included in the accepted total.',
+      counts.accepted,
+      amounts.accepted,
       'EUR',
     ],
     [],
     ['Notes'],
-    [
-      'Review',
-      'Rows marked "In review" still need confirmation before filing.',
-    ],
     [
       'Proof files',
       'Document file names correspond to the "Proof file" column in the Invoices sheet.',
@@ -292,30 +302,26 @@ const buildWorkbook = async (
   ]);
 
   overviewSheet.getColumn(4).numFmt = '#,##0.00';
-  [2, 3, 4, 10, 11, 12].forEach((rowNumber) => {
+  [2, 3, 4, 14, 15].forEach((rowNumber) => {
     overviewSheet.getRow(rowNumber).getCell(1).font = { bold: true };
   });
-  overviewSheet.getRow(6).eachCell((cell) => {
-    cell.font = { bold: true };
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE5E7EB' },
-    };
+  [6, 10].forEach((rowNumber) => {
+    overviewSheet.getRow(rowNumber).eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE5E7EB' },
+      };
+    });
   });
-  overviewSheet.getRow(8).eachCell({ includeEmpty: true }, (cell) => {
+  overviewSheet.getRow(11).eachCell({ includeEmpty: true }, (cell) => {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFFFF3CD' },
     };
   });
-  overviewSheet.getRow(10).font = { bold: true };
-  overviewSheet.getRow(10).fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE5E7EB' },
-  };
   overviewSheet.eachRow((row) => {
     row.eachCell({ includeEmpty: true }, (cell) => {
       cell.alignment = { vertical: 'top', wrapText: true };
@@ -387,14 +393,15 @@ const writeZipPackage = async ({
   filePath,
   rows,
   proofDocuments,
+  summary,
 }: {
   year: number;
   filePath: string;
   rows: ExportRow[];
   proofDocuments: ProofDocument[];
+  summary: ExportSummary;
 }) => {
   const packageName = packageNameForYear(year);
-  const summary = buildExportSummary(year, rows);
   const workbookBuffer = await buildWorkbook(
     rows,
     new Map(proofDocuments.map((proof) => [proof.documentId, proof.zipPath])),
@@ -519,6 +526,10 @@ export class InvoiceExporter {
     }
 
     const proofPaths = buildProofFileNames(rows);
+    const summary = buildExportSummary(
+      year,
+      getReviewSummary(this.db, eq(invoiceItems.taxYear, year)),
+    );
     const proofDocuments = [
       ...new Map(
         rows
@@ -541,7 +552,13 @@ export class InvoiceExporter {
     ];
 
     try {
-      await writeZipPackage({ year, filePath, rows, proofDocuments });
+      await writeZipPackage({
+        year,
+        filePath,
+        rows,
+        proofDocuments,
+        summary,
+      });
     } catch (error) {
       await unlink(filePath).catch(() => undefined);
 
