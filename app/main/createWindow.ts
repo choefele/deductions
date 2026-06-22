@@ -1,8 +1,12 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export const appIconPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'icon.png')
+  : path.join(__dirname, '../../assets/icon.png');
 
 export const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -11,6 +15,7 @@ export const createWindow = () => {
     minWidth: 720,
     minHeight: 480,
     title: 'Deductions',
+    ...(process.platform === 'darwin' ? {} : { icon: appIconPath }),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

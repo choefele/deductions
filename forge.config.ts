@@ -1,4 +1,6 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { MakerDeb } from "@electron-forge/maker-deb";
@@ -7,17 +9,22 @@ import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const iconPath = path.join(__dirname, "assets", "icon");
+const linuxIconPath = `${iconPath}.png`;
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    extraResource: ["app/main/data/drizzle"],
+    icon: iconPath,
+    extraResource: ["app/main/data/drizzle", linuxIconPath],
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({ setupIcon: `${iconPath}.ico` }),
     new MakerZIP({}, ["darwin"]),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerRpm({ options: { icon: linuxIconPath } }),
+    new MakerDeb({ options: { icon: linuxIconPath } }),
   ],
   plugins: [
     new VitePlugin({

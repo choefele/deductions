@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Blue folder app icon with document and sparkles">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0EA5E9"/>
+      <stop offset="42%" stop-color="#0751B8"/>
+      <stop offset="100%" stop-color="#07145F"/>
+    </linearGradient>
+
+    <radialGradient id="bgGlowTop" cx="14%" cy="12%" r="58%">
+      <stop offset="0%" stop-color="#28D8FF" stop-opacity="0.42"/>
+      <stop offset="55%" stop-color="#28D8FF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#28D8FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="bgGlowBottom" cx="78%" cy="78%" r="52%">
+      <stop offset="0%" stop-color="#00124A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#00124A" stop-opacity="0.45"/>
+    </radialGradient>
+
+    <linearGradient id="folderBackGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B459A" stop-opacity="0.90"/>
+      <stop offset="100%" stop-color="#061D63" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <linearGradient id="folderGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3EA1FF"/>
+      <stop offset="48%" stop-color="#197DFF"/>
+      <stop offset="100%" stop-color="#0960DD"/>
+    </linearGradient>
+
+    <radialGradient id="folderHighlight" cx="24%" cy="2%" r="74%">
+      <stop offset="0%" stop-color="#73C8FF" stop-opacity="0.70"/>
+      <stop offset="52%" stop-color="#73C8FF" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#73C8FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="documentGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F4F8FC"/>
+    </linearGradient>
+
+    <linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#35F6E6"/>
+      <stop offset="58%" stop-color="#21C9FF"/>
+      <stop offset="100%" stop-color="#2B7CFF"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#00113C" flood-opacity="0.42"/>
+    </filter>
+
+    <filter id="docShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#00113C" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+
+  <!-- Full-square background: no transparent corners or inset app mask. -->
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#bgGrad)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#bgGlowTop)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#bgGlowBottom)"/>
+
+  <g filter="url(#softShadow)">
+    <!-- Back layer of the folder, with rounded bottom-left corner. -->
+    <path d="M256 378
+             C256 342 288 328 324 328
+             H444
+             C476 328 494 349 516 371
+             L554 410
+             C570 427 587 434 616 434
+             H708
+             C748 434 780 466 780 506
+             V716
+             C780 756 748 788 708 788
+             H324
+             C286 788 256 758 256 722
+             Z"
+          fill="url(#folderBackGrad)" opacity="0.74"/>
+
+    <!-- Document sheet. -->
+    <g filter="url(#docShadow)">
+      <rect x="360" y="220" width="304" height="420" rx="18" fill="url(#documentGrad)"/>
+      <line x1="414" y1="282" x2="612" y2="282" stroke="#DCE3ED" stroke-width="16" stroke-linecap="round"/>
+      <line x1="414" y1="332" x2="540" y2="332" stroke="#DCE3ED" stroke-width="16" stroke-linecap="round"/>
+      <line x1="414" y1="382" x2="582" y2="382" stroke="#DCE3ED" stroke-width="16" stroke-linecap="round"/>
+    </g>
+
+    <!-- Front layer of the folder. The formerly sharp bottom-left corner is now rounded. -->
+    <path d="M256 462
+             C256 424 286 400 324 400
+             H452
+             C478 400 495 413 510 430
+             L548 469
+             C565 486 582 492 610 492
+             H714
+             C754 492 786 524 786 564
+             V730
+             C786 772 758 802 716 802
+             H324
+             C286 802 256 772 256 734
+             Z"
+          fill="url(#folderGrad)"/>
+    <path d="M256 462
+             C256 424 286 400 324 400
+             H452
+             C478 400 495 413 510 430
+             L548 469
+             C565 486 582 492 610 492
+             H714
+             C754 492 786 524 786 564
+             V730
+             C786 772 758 802 716 802
+             H324
+             C286 802 256 772 256 734
+             Z"
+          fill="url(#folderHighlight)"/>
+  </g>
+
+  <!-- Sparkles. -->
+  <path d="M720 260
+           C725 298 742 315 780 320
+           C742 325 725 342 720 380
+           C715 342 698 325 660 320
+           C698 315 715 298 720 260 Z"
+        fill="url(#sparkGrad)"/>
+  <path d="M790 200
+           C793 222 806 227 822 230
+           C806 233 793 238 790 260
+           C787 238 774 233 758 230
+           C774 227 787 222 790 200 Z"
+        fill="#2EEBD8" opacity="0.85"/>
+</svg>
