@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 import type { DocumentTextExtractor, NormalizedDocumentText } from './types';
 
@@ -26,6 +28,14 @@ const installDomMatrixFallback = () => {
 };
 
 let pdfjsModulePromise: Promise<PdfJsModule> | null = null;
+const require = createRequire(import.meta.url);
+
+const resolvePdfWorkerSource = () =>
+  import.meta.url.includes('/.vite/build/')
+    ? new URL('./pdf.worker.mjs', import.meta.url).href
+    : pathToFileURL(
+        require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs'),
+      ).href;
 
 const loadPdfJs = () => {
   installDomMatrixFallback();
@@ -65,11 +75,11 @@ export class PdfJsDocumentTextExtractor implements DocumentTextExtractor {
     documentId: string;
     filePath: string;
   }): Promise<NormalizedDocumentText> {
-    const { getDocument } = await loadPdfJs();
+    const { getDocument, GlobalWorkerOptions } = await loadPdfJs();
+    GlobalWorkerOptions.workerSrc = resolvePdfWorkerSource();
     const bytes = await readFile(filePath);
     const loadingTask = getDocument({
       data: new Uint8Array(bytes),
-      disableWorker: true,
       isEvalSupported: false,
       useSystemFonts: true,
       useWorkerFetch: false,
