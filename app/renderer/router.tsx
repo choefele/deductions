@@ -10,6 +10,7 @@ import {
   allYearsLoader,
   categoryLoader,
   documentsLoader,
+  documentLoader,
   invoiceLoader,
   rootLoader,
   sourcesLoader,
@@ -21,6 +22,7 @@ import {
 import { AllYearsDashboard } from './views/AllYearsDashboard';
 import { CategoryView } from './views/CategoryView';
 import { DocumentsView } from './views/DocumentsView';
+import { DocumentDetailView } from './views/DocumentDetailView';
 import { InvoiceDetailView } from './views/InvoiceDetailView';
 import { ReviewQueueView } from './views/ReviewQueueView';
 import { SourcesView } from './views/SourcesView';
@@ -92,6 +94,11 @@ const router = createHashRouter([
         path: 'documents',
         element: <DocumentsView />,
         loader: documentsLoader,
+      },
+      {
+        path: 'documents/:documentId',
+        element: <DocumentDetailView />,
+        loader: documentLoader,
       },
       {
         path: 'sources',

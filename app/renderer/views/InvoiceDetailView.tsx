@@ -25,16 +25,18 @@ import {
   categoryLabel,
   categoryPath,
   invoiceReviewQueuePath,
+  reviewQueueLabels,
   reviewQueuePath,
   type ReviewQueueId,
 } from '@/navigation';
 import { deductionsData } from '@/data/repository';
+import { ReviewDetailShell } from '@/components/review/ReviewDetailShell';
+import { SourceDocumentPanel } from '@/components/review/SourceDocumentPanel';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -60,27 +62,11 @@ type ReviewQueueContext = {
   queue: ReviewQueueId;
 };
 
-const documentStatusLabels = {
-  imported: 'Ready to process',
-  processing: 'Processing',
-  needs_review: 'Needs review',
-  processed: 'Processed',
-} as const;
-
 const fieldClassName =
   'h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50';
 
 const textareaClassName =
   'min-h-20 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50';
-
-const formatDateTime = (date: string) =>
-  new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
 
 const formFromInvoiceItem = (invoiceItem: InvoiceItemDetail): ReviewFormState => ({
   vendor: invoiceItem.vendor,
@@ -125,19 +111,6 @@ const Field = ({
   </label>
 );
 
-const SourceDetail = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) => (
-  <div>
-    <dt className="text-xs uppercase text-muted-foreground">{label}</dt>
-    <dd className="wrap-break-word font-medium">{value}</dd>
-  </div>
-);
-
 export const InvoiceDetailView = () => {
   const loadedInvoiceItem = useLoaderData() as InvoiceItemDetail;
   const [searchParams] = useSearchParams();
@@ -146,7 +119,6 @@ export const InvoiceDetailView = () => {
   const [form, setForm] = useState(() => formFromInvoiceItem(loadedInvoiceItem));
   const [queueItems, setQueueItems] = useState<InvoiceItemSummary[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isOpeningDocument, setIsOpeningDocument] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [documentOpenError, setDocumentOpenError] = useState<string | null>(
@@ -308,7 +280,6 @@ export const InvoiceDetailView = () => {
       return;
     }
 
-    setIsOpeningDocument(true);
     setDocumentOpenError(null);
 
     try {
@@ -325,94 +296,55 @@ export const InvoiceDetailView = () => {
           ? error.message
           : 'Document preview could not be opened.',
       );
-    } finally {
-      setIsOpeningDocument(false);
     }
   };
 
   return (
-    <main className="max-w-6xl space-y-6 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="wrap-break-word text-2xl font-semibold tracking-tight">
-            {invoiceItem.vendor}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {invoiceItem.description} ·{' '}
-            {formatCurrency(invoiceItem.amount, invoiceItem.currency)}
-          </p>
+    <ReviewDetailShell
+      backLabel={
+        reviewQueueContext ? reviewQueueLabels[reviewQueueContext.queue] : 'Category'
+      }
+      backTo={
+        reviewQueueContext
+          ? reviewQueuePath(reviewQueueContext.year, reviewQueueContext.queue)
+          : categoryPath(invoiceItem.taxYear, invoiceItem.categoryId)
+      }
+      positionLabel={
+        reviewQueueContext && currentQueueIndex >= 0
+          ? `${currentQueueIndex + 1} of ${queueItems.length}`
+          : undefined
+      }
+      title={invoiceItem.vendor}
+      description={`${invoiceItem.description} · ${formatCurrency(
+        invoiceItem.amount,
+        invoiceItem.currency,
+      )}`}
+      status={<StatusBadge status={invoiceItem.reviewStatus} />}
+      onPrevious={
+        reviewQueueContext && previousQueueItem
+          ? () => void navigateToQueueItem(previousQueueItem)
+          : undefined
+      }
+      onNext={
+        reviewQueueContext && nextQueueItem
+          ? () => void navigateToQueueItem(nextQueueItem)
+          : undefined
+      }
+      isPreviousDisabled={isSaving || !previousQueueItem}
+      isNextDisabled={isSaving || !nextQueueItem}
+    >
+      <div className="grid gap-6 lg:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.35fr)]">
+        <div className="space-y-4">
+          <SourceDocumentPanel
+            document={document}
+            previewAction={document ? () => void openDocumentPreview() : undefined}
+          />
+          {documentOpenError ? (
+            <p className="wrap-break-word rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {documentOpenError}
+            </p>
+          ) : null}
         </div>
-        <StatusBadge status={invoiceItem.reviewStatus} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.4fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Source</CardTitle>
-            <CardDescription>
-              {document?.originalFileName ?? 'No source document'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            {document ? (
-              <>
-                <dl className="grid gap-3">
-                  <SourceDetail label="File" value={document.originalFileName} />
-                  <SourceDetail
-                    label="Source"
-                    value={document.sourceLabel ?? document.sourceId}
-                  />
-                  <SourceDetail
-                    label="Imported"
-                    value={formatDateTime(document.importedAt)}
-                  />
-                  <SourceDetail
-                    label="Processing"
-                    value={
-                      document.status
-                        ? documentStatusLabels[document.status]
-                        : 'Unknown'
-                    }
-                  />
-                  {document.processingCompletedAt ? (
-                    <SourceDetail
-                      label="Completed"
-                      value={formatDateTime(document.processingCompletedAt)}
-                    />
-                  ) : null}
-                  {document.processorVersion ? (
-                    <SourceDetail
-                      label="Processor"
-                      value={document.processorVersion}
-                    />
-                  ) : null}
-                </dl>
-                {document.latestError ? (
-                  <p className="wrap-break-word rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive">
-                    {document.latestError}
-                  </p>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isOpeningDocument}
-                  onClick={() => void openDocumentPreview()}
-                >
-                  View document
-                </Button>
-                {documentOpenError ? (
-                  <p className="wrap-break-word rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive">
-                    {documentOpenError}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-muted-foreground">
-                This item is not linked to an imported document.
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
         <form onSubmit={handleSubmit}>
           <Card>
@@ -420,9 +352,9 @@ export const InvoiceDetailView = () => {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <CardTitle>Review</CardTitle>
-                  <CardDescription>
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Edit extracted facts and the review decision.
-                  </CardDescription>
+                  </p>
                 </div>
                 <StatusBadge status={form.reviewStatus} />
               </div>
@@ -575,27 +507,10 @@ export const InvoiceDetailView = () => {
               ) : null}
 
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-2">
-                  {reviewQueueContext ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={isSaving || !previousQueueItem}
-                        onClick={() => void navigateToQueueItem(previousQueueItem)}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={isSaving || !nextQueueItem}
-                        onClick={() => void navigateToQueueItem(nextQueueItem)}
-                      >
-                        Next
-                      </Button>
-                    </>
-                  ) : null}
+                <div className="text-sm text-muted-foreground">
+                  {reviewQueueContext
+                    ? 'Accepting or rejecting advances to the next item.'
+                    : null}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button
@@ -622,6 +537,6 @@ export const InvoiceDetailView = () => {
           </Card>
         </form>
       </div>
-    </main>
+    </ReviewDetailShell>
   );
 };

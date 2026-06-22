@@ -44,6 +44,8 @@ export const invoiceReviewQueuePath = (
 
 export const documentsPath = () => '/documents';
 
+export const documentPath = (documentId: string) => `/documents/${documentId}`;
+
 export const reviewQueuePath = (year: number, queue: ReviewQueueId) =>
   queue === 'pending' ? `/years/${year}/review` : `/years/${year}/${queue}`;
 
@@ -113,6 +115,10 @@ export const getSelectionForPath = (
   }
 
   if (pathname === documentsPath()) {
+    return { type: 'documents' };
+  }
+
+  if (pathname.match(/^\/documents\/[^/]+$/)) {
     return { type: 'documents' };
   }
 

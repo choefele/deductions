@@ -107,3 +107,22 @@ export const sourcesLoader = async () => deductionsData.listSources();
 
 export const documentsLoader = async () =>
   deductionsData.listDocumentSummaries();
+
+export const documentLoader = async ({ params }: LoaderFunctionArgs) => {
+  const documentId = params.documentId;
+
+  if (!documentId) {
+    throw new Response('Document id is required', { status: 400 });
+  }
+
+  const [document, documents] = await Promise.all([
+    deductionsData.getDocumentDetail(documentId),
+    deductionsData.listDocumentSummaries(),
+  ]);
+
+  if (!document) {
+    throw new Response('Document not found', { status: 404 });
+  }
+
+  return { document, documents };
+};

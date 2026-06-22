@@ -1,5 +1,3 @@
-import { Link } from 'react-router';
-
 import type { InvoiceItemSummary } from '../../shared/data';
 import {
   categoryLabel,
@@ -7,6 +5,7 @@ import {
   invoiceReviewQueuePath,
   type ReviewQueueId,
 } from '@/navigation';
+import { ReviewTableRow } from './review/ReviewTableRow';
 import { StatusBadge } from './StatusBadge';
 import {
   Table,
@@ -71,39 +70,38 @@ export const InvoiceTable = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {invoiceItems.map((invoiceItem) => (
-            <TableRow key={invoiceItem.id}>
-              <TableCell className="min-w-0 whitespace-normal py-3">
-                <Link
-                  className="block break-words font-medium text-foreground underline-offset-4 hover:underline"
-                  to={
-                    reviewQueueContext
-                      ? invoiceReviewQueuePath(
-                          invoiceItem.id,
-                          reviewQueueContext.year,
-                          reviewQueueContext.queue,
-                        )
-                      : invoicePath(invoiceItem.id)
-                  }
-                >
-                  {invoiceItem.vendor}
-                </Link>
+          {invoiceItems.map((invoiceItem) => {
+            const detailPath = reviewQueueContext
+              ? invoiceReviewQueuePath(
+                  invoiceItem.id,
+                  reviewQueueContext.year,
+                  reviewQueueContext.queue,
+                )
+              : invoicePath(invoiceItem.id);
+
+            return (
+              <ReviewTableRow key={invoiceItem.id} to={detailPath}>
+                <TableCell className="min-w-0 whitespace-normal py-3">
+                  <div className="break-words font-medium text-foreground">
+                    {invoiceItem.vendor}
+                  </div>
                 <div className="mt-1 break-words text-xs leading-5 text-muted-foreground">
                   {invoiceItem.description}
                 </div>
-              </TableCell>
-              <TableCell>{formatDate(invoiceItem.invoiceDate)}</TableCell>
-              <TableCell className="truncate">
-                {categoryLabel(invoiceItem.categoryId)}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={invoiceItem.reviewStatus} />
-              </TableCell>
-              <TableCell className="text-right font-medium">
-                {formatCurrency(invoiceItem.amount, invoiceItem.currency)}
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>{formatDate(invoiceItem.invoiceDate)}</TableCell>
+                <TableCell className="truncate">
+                  {categoryLabel(invoiceItem.categoryId)}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={invoiceItem.reviewStatus} />
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatCurrency(invoiceItem.amount, invoiceItem.currency)}
+                </TableCell>
+              </ReviewTableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

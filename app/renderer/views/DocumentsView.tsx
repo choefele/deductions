@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import {
-  Link,
-  useLoaderData,
-  useLocation,
-  useRevalidator,
-  useSearchParams,
-} from "react-router";
+import { useLoaderData, useLocation, useRevalidator } from "react-router";
 import {
   AlertCircle,
   CheckCircle2,
@@ -19,16 +13,11 @@ import {
   Trash2,
 } from "lucide-react";
 
-import type {
-  DocumentDetail,
-  DocumentListSummary,
-  DocumentStatus,
-  InvoiceItemDetail,
-} from "../../shared/data";
+import type { DocumentListSummary, DocumentStatus } from "../../shared/data";
 import type { ImportFilesResult } from "../../shared/imports";
-import { invoicePath, reviewQueuePath, taxYearPath } from "@/navigation";
+import { documentPath } from "@/navigation";
 import { formatSelectionStatus } from "@/selectionStatus";
-import { StatusBadge } from "@/components/StatusBadge";
+import { ReviewTableRow } from "@/components/review/ReviewTableRow";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,11 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Table,
   TableBody,
   TableCell,
@@ -51,7 +35,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDate } from "./viewUtils";
 
 const statusLabel: Record<DocumentStatus, string> = {
   imported: "Ready to process",
@@ -188,138 +171,6 @@ const ImportOutcomeList = ({
   </div>
 );
 
-const DocumentDetailPanel = ({
-  detail,
-  isProcessingRequestPending,
-  onProcess,
-}: {
-  detail: DocumentDetail | null;
-  isProcessingRequestPending: boolean;
-  onProcess: (documentId: string) => void;
-}) => {
-  if (!detail) {
-    return (
-      <aside className="rounded-md border p-4 text-sm text-muted-foreground">
-        No document selected.
-      </aside>
-    );
-  }
-
-  const items = detail.invoices.flatMap((invoice) => invoice.items);
-
-  return (
-    <aside className="space-y-5 rounded-md border p-4">
-      <div className="space-y-1">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="wrap-break-word text-base font-semibold">
-            {detail.originalFileName}
-          </h2>
-          <DocumentProcessingAction
-            document={detail}
-            disabled={isProcessingRequestPending}
-            onProcess={onProcess}
-          />
-        </div>
-        <p className="text-sm text-muted-foreground">{detail.storagePath}</p>
-      </div>
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <DetailValue label="Source" value={detail.sourceLabel} />
-        <DetailValue label="Status" value={statusLabel[detail.status]} />
-        <DetailValue
-          label="Imported"
-          value={formatDateTime(detail.importedAt)}
-        />
-        <DetailValue
-          label="Completed"
-          value={
-            detail.processingCompletedAt
-              ? formatDateTime(detail.processingCompletedAt)
-              : "None"
-          }
-        />
-        <DetailValue
-          label="Processor"
-          value={detail.processorVersion ?? "None"}
-        />
-        <DetailValue label="SHA-256" value={detail.sha256} wide />
-      </dl>
-      {detail.latestError ? (
-        <p className="wrap-break-word rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {detail.latestError}
-        </p>
-      ) : null}
-      {detail.taxYears.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {detail.taxYears.map((taxYear) => (
-            <Button key={taxYear} asChild size="sm" variant="secondary">
-              <Link
-                to={
-                  detail.pendingItemCount > 0
-                    ? reviewQueuePath(taxYear, "pending")
-                    : taxYearPath(taxYear)
-                }
-              >
-                {taxYear}
-              </Link>
-            </Button>
-          ))}
-        </div>
-      ) : null}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Items</h3>
-        {items.length > 0 ? (
-          <ul className="space-y-2">
-            {items.map((item) => (
-              <DocumentItemLink key={item.id} item={item} />
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">No linked items.</p>
-        )}
-      </div>
-    </aside>
-  );
-};
-
-const DocumentProcessingAction = ({
-  document,
-  disabled,
-  onProcess,
-}: {
-  document: DocumentListSummary;
-  disabled: boolean;
-  onProcess: (documentId: string) => void;
-}) => {
-  const canProcess =
-    document.status === "imported" || document.status === "needs_review";
-
-  if (!canProcess) {
-    return null;
-  }
-
-  const isRetry = document.status === "needs_review";
-  const Icon = isRetry ? RotateCcw : Play;
-  const label = isRetry ? "Re-process" : "Process";
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          disabled={disabled}
-          aria-label={label}
-          onClick={() => onProcess(document.id)}
-        >
-          <Icon className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-};
-
 const DocumentStatusBadge = ({ status }: { status: DocumentStatus }) => (
   <Badge
     variant={statusVariant(status)}
@@ -389,43 +240,6 @@ const DocumentActionsMenu = ({
   );
 };
 
-const DetailValue = ({
-  label,
-  value,
-  wide = false,
-}: {
-  label: string;
-  value: string;
-  wide?: boolean;
-}) => (
-  <div className={wide ? "col-span-2" : undefined}>
-    <dt className="text-xs uppercase text-muted-foreground">{label}</dt>
-    <dd className="wrap-break-word font-medium">{value}</dd>
-  </div>
-);
-
-const DocumentItemLink = ({ item }: { item: InvoiceItemDetail }) => (
-  <li>
-    <Link
-      to={invoicePath(item.id)}
-      className="block rounded-md border p-3 text-sm transition-colors hover:bg-muted/50"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 space-y-1">
-          <div className="wrap-break-word font-medium">{item.description}</div>
-          <div className="wrap-break-word text-muted-foreground">
-            {item.vendor} · {formatDate(item.invoiceDate)} · {item.taxYear}
-          </div>
-        </div>
-        <StatusBadge status={item.reviewStatus} />
-      </div>
-      <div className="mt-2 font-medium">
-        {formatCurrency(item.amount, item.currency)}
-      </div>
-    </Link>
-  </li>
-);
-
 export const DocumentsView = () => {
   const documents = useLoaderData() as DocumentListSummary[];
   const location = useLocation();
@@ -437,11 +251,7 @@ export const DocumentsView = () => {
     () => new Set(latestImport?.accepted.map((file) => file.documentId) ?? []),
     [latestImport],
   );
-  const [searchParams, setSearchParams] = useSearchParams();
   const revalidator = useRevalidator();
-  const selectedDocumentId =
-    searchParams.get("document") ?? documents[0]?.id ?? null;
-  const [detail, setDetail] = useState<DocumentDetail | null>(null);
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(
     null,
   );
@@ -458,29 +268,6 @@ export const DocumentsView = () => {
       JSON.stringify(routeLatestImport),
     );
   }, [routeLatestImport]);
-
-  useEffect(() => {
-    let isActive = true;
-    setDetail(null);
-
-    if (!selectedDocumentId) {
-      return () => {
-        isActive = false;
-      };
-    }
-
-    window.deductions.data
-      .getDocumentDetail(selectedDocumentId)
-      .then((documentDetail) => {
-        if (isActive) {
-          setDetail(documentDetail);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [selectedDocumentId, documents]);
 
   const handleProcessDocument = async (documentId: string) => {
     setProcessingRequestId(documentId);
@@ -509,13 +296,6 @@ export const DocumentsView = () => {
 
     try {
       await window.deductions.data.deleteDocument(document.id);
-
-      if (selectedDocumentId === document.id) {
-        const nextDocument = documents.find((item) => item.id !== document.id);
-        setSearchParams(nextDocument ? { document: nextDocument.id } : {});
-        setDetail(null);
-      }
-
       revalidator.revalidate();
     } finally {
       setDeleteRequestId(null);
@@ -533,8 +313,8 @@ export const DocumentsView = () => {
         </p>
       </div>
       <LatestImportSummary result={latestImport} />
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <section className="min-w-0 overflow-hidden rounded-md border">
+      <div className="min-w-0">
+        <section className="min-w-0 overflow-hidden rounded-md border bg-card">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
@@ -564,22 +344,13 @@ export const DocumentsView = () => {
             <TableBody>
               {documents.length > 0 ? (
                 documents.map((document) => {
-                  const isSelected = document.id === selectedDocumentId;
                   const isNew = acceptedDocumentIds.has(document.id);
 
                   return (
-                    <TableRow
+                    <ReviewTableRow
                       key={document.id}
-                      aria-selected={isSelected}
                       className={isNew ? "bg-emerald-50/60" : undefined}
-                      tabIndex={0}
-                      onClick={() => setSearchParams({ document: document.id })}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSearchParams({ document: document.id });
-                        }
-                      }}
+                      to={documentPath(document.id)}
                     >
                       <TableCell className="whitespace-normal wrap-break-word font-medium">
                         {document.originalFileName}
@@ -612,7 +383,7 @@ export const DocumentsView = () => {
                           onDelete={handleDeleteDocument}
                         />
                       </TableCell>
-                    </TableRow>
+                    </ReviewTableRow>
                   );
                 })
               ) : (
@@ -628,13 +399,6 @@ export const DocumentsView = () => {
             </TableBody>
           </Table>
         </section>
-        <div className="min-w-0">
-          <DocumentDetailPanel
-            detail={detail}
-            isProcessingRequestPending={processingRequestId === detail?.id}
-            onProcess={handleProcessDocument}
-          />
-        </div>
       </div>
     </main>
   );
