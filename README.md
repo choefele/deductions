@@ -55,6 +55,8 @@ the command you run:
 DEDUCTIONS_AI_MODEL_ID=your-model-id npm start
 ```
 
+### Other Development Scripts
+
 Run the standard checks during development:
 
 ```bash
